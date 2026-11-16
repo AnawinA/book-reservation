@@ -17,7 +17,7 @@
         <% } else if (currentUser && currentUser.role === 'Admin') { %>
           <a href="/admin/dashboard">การจัดการระบบ</a>
         <% } else { %>
-          <a href="/#loginForm">เข้าสู่ระบบ</a>
+          <a href="/#loginForm" class="open-auth-btn" data-auth-mode="login">เข้าสู่ระบบ</a>
         <% } %>
       </nav>
     </div>

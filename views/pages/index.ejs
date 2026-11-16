@@ -1,9 +1,9 @@
 <%- include('../partials/header') %>
 
 <% if (authRequired) { %>
-  <div class="alert" role="alert">
+  <div class="alert open-auth-btn" role="alert" style="cursor: pointer;" data-auth-mode="login">
     <span aria-hidden="true">&#9432;</span>
-    <span>กรุณาเข้าสู่ระบบเพื่อเปิดแดชบอร์ดของคุณ</span>
+    <span>กรุณาเข้าสู่ระบบเพื่อเปิดแดชบอร์ดของคุณ (คลิกที่นี่เพื่อเข้าสู่ระบบ)</span>
   </div>
 <% } %>
 
@@ -52,7 +52,7 @@
       </div>
     <% } %>
     <% if (!currentUser) { %>
-      <a class="btn" href="#loginForm">เข้าสู่ระบบเพื่อยืมหนังสือ</a>
+      <a class="btn open-auth-btn" href="#loginForm" data-auth-mode="login">เข้าสู่ระบบเพื่อยืมหนังสือ</a>
     <% } %>
   </aside>
 </section>
@@ -223,47 +223,70 @@
 </section>
 
 <% if (!currentUser) { %>
-  <section class="grid-2">
-    <div class="card">
-      <div class="card-header">
-        <h2 id="loginForm">ยินดีต้อนรับเข้าสู่ระบบ</h2>
+  <!-- Auth Modal Panel (Login / Register) with blurred background -->
+  <div class="modal-backdrop" id="authModal" role="dialog" aria-modal="true" aria-labelledby="authLoginPanel" hidden>
+    <div class="modal-dialog auth-modal-dialog">
+      <div class="modal-header">
+        <div class="auth-tabs" role="tablist" aria-label="ตัวเลือกการเข้าใช้งาน">
+          <button type="button" class="auth-tab-btn is-active" id="tabLoginBtn" role="tab" aria-selected="true" aria-controls="authLoginPanel">
+            เข้าสู่ระบบ
+          </button>
+          <button type="button" class="auth-tab-btn" id="tabRegisterBtn" role="tab" aria-selected="false" aria-controls="authRegisterPanel">
+            สมัครสมาชิก
+          </button>
+        </div>
+        <button type="button" class="modal-close-btn" id="authModalClose" aria-label="ปิด">&times;</button>
       </div>
-      <form id="loginFormEl" class="stack">
-        <div class="field">
-          <label for="login-username">ชื่อผู้ใช้</label>
-          <input id="login-username" name="username" autocomplete="username" required>
-        </div>
-        <div class="field">
-          <label for="login-password">รหัสผ่าน</label>
-          <input id="login-password" name="password" type="password" autocomplete="current-password" required>
-        </div>
-        <button class="btn" type="submit">เข้าสู่ระบบ</button>
-        <p class="hint">บัญชีทดสอบใช้รหัสผ่านจาก <code>SEED_DEFAULT_PASSWORD</code></p>
-      </form>
-    </div>
 
-    <div class="card">
-      <div class="card-header">
-        <h2>สมัครสมาชิกสำหรับผู้ใช้งาน</h2>
+      <!-- Panel 1: เข้าสู่ระบบ (Login) -->
+      <div class="auth-panel is-active" id="authLoginPanel" role="tabpanel" aria-labelledby="tabLoginBtn">
+        <h2 id="loginForm" class="auth-heading">ยินดีต้อนรับเข้าสู่ระบบ</h2>
+        <p class="muted auth-subheading">กรอกชื่อผู้ใช้และรหัสผ่านเพื่อเข้าใช้งาน</p>
+        <form id="loginFormEl" class="stack">
+          <div class="field">
+            <label for="login-username">ชื่อผู้ใช้</label>
+            <input id="login-username" name="username" autocomplete="username" required>
+          </div>
+          <div class="field">
+            <label for="login-password">รหัสผ่าน</label>
+            <input id="login-password" name="password" type="password" autocomplete="current-password" required>
+          </div>
+          <button class="btn btn-full" type="submit">เข้าสู่ระบบ</button>
+          <p class="hint">บัญชีทดสอบใช้รหัสผ่านจาก <code>SEED_DEFAULT_PASSWORD</code></p>
+        </form>
+        <div class="auth-switch-prompt">
+          <span>ยังไม่มีบัญชีผู้ใช้?</span>
+          <button type="button" class="link-btn switch-to-register">สมัครสมาชิกที่นี่</button>
+        </div>
       </div>
-      <form id="registerForm" class="stack">
-        <div class="field">
-          <label for="register-username">ชื่อผู้ใช้</label>
-          <input id="register-username" name="username" autocomplete="username" required minlength="3" maxlength="30" placeholder="3-30 ตัวอักษร, ตัวเลข หรือ _">
+
+      <!-- Panel 2: สมัครสมาชิก (Register / Signin) -->
+      <div class="auth-panel" id="authRegisterPanel" role="tabpanel" aria-labelledby="tabRegisterBtn" hidden>
+        <h2 class="auth-heading">สมัครสมาชิกสำหรับผู้ใช้งาน</h2>
+        <p class="muted auth-subheading">สร้างบัญชีใหม่เพื่อเริ่มยืมหนังสือและสะสมแต้ม</p>
+        <form id="registerForm" class="stack">
+          <div class="field">
+            <label for="register-username">ชื่อผู้ใช้</label>
+            <input id="register-username" name="username" autocomplete="username" required minlength="3" maxlength="30" placeholder="3-30 ตัวอักษร, ตัวเลข หรือ _">
+          </div>
+          <div class="field">
+            <label for="register-phone">เบอร์โทรศัพท์มือถือ (ไทย)</label>
+            <input id="register-phone" name="phone" inputmode="numeric" pattern="0[0-9]{9}" required placeholder="08xxxxxxxx">
+          </div>
+          <div class="field">
+            <label for="register-password">รหัสผ่าน</label>
+            <input id="register-password" name="password" type="password" autocomplete="new-password" required minlength="8" placeholder="อย่างน้อย 8 ตัวอักษร ประกอบด้วยตัวอักษรและตัวเลข">
+          </div>
+          <button class="btn btn-full" type="submit">สร้างบัญชี</button>
+          <p class="hint">บัญชีใหม่เริ่มต้นด้วย 0 แต้ม และสามารถยืมหนังสือได้ตามจำนวนที่ระบบกำหนด</p>
+        </form>
+        <div class="auth-switch-prompt">
+          <span>มีบัญชีผู้ใช้อยู่แล้ว?</span>
+          <button type="button" class="link-btn switch-to-login">เข้าสู่ระบบที่นี่</button>
         </div>
-        <div class="field">
-          <label for="register-phone">เบอร์โทรศัพท์มือถือ (ไทย)</label>
-          <input id="register-phone" name="phone" inputmode="numeric" pattern="0[0-9]{9}" required placeholder="08xxxxxxxx">
-        </div>
-        <div class="field">
-          <label for="register-password">รหัสผ่าน</label>
-          <input id="register-password" name="password" type="password" autocomplete="new-password" required minlength="8" placeholder="อย่างน้อย 8 ตัวอักษร ประกอบด้วยตัวอักษรและตัวเลข">
-        </div>
-        <button class="btn" type="submit">สร้างบัญชี</button>
-        <p class="hint">บัญชีใหม่เริ่มต้นด้วย 0 แต้ม และสามารถยืมหนังสือได้ตามจำนวนที่ระบบกำหนด</p>
-      </form>
+      </div>
     </div>
-  </section>
+  </div>
 <% } %>
 
 <%- include('../partials/footer') %>
