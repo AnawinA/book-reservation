@@ -145,9 +145,79 @@
     }
   }
 
+  function initInventorySearch() {
+    const searchInput = document.getElementById('inventorySearch');
+    const statusSelect = document.getElementById('inventoryStatusFilter');
+    const clearBtn = document.getElementById('inventoryClearBtn');
+    const table = document.getElementById('inventoryTable');
+    const countChip = document.getElementById('inventoryCountChip');
+    const emptyRow = document.getElementById('inventoryEmptySearch');
+
+    if (!searchInput || !table) return;
+
+    const tbody = table.querySelector('tbody');
+    if (!tbody) return;
+
+    const rows = Array.from(tbody.querySelectorAll('tr:not(#inventoryEmptySearch)'));
+    const totalCount = rows.length;
+
+    function filterInventory() {
+      const query = (searchInput.value || '').trim().toLowerCase();
+      const statusFilter = (statusSelect ? statusSelect.value : '').toUpperCase();
+
+      let visibleCount = 0;
+
+      rows.forEach(function (row) {
+        const text = row.textContent.toLowerCase();
+        const rowStatus = (row.dataset.status || '').toUpperCase();
+
+        const matchesQuery = !query || text.includes(query);
+        const matchesStatus = !statusFilter || rowStatus === statusFilter;
+
+        if (matchesQuery && matchesStatus) {
+          row.style.display = '';
+          visibleCount++;
+        } else {
+          row.style.display = 'none';
+        }
+      });
+
+      if (countChip) {
+        if (query || statusFilter) {
+          countChip.textContent = 'พบ ' + visibleCount + ' จาก ' + totalCount + ' เล่ม';
+        } else {
+          countChip.textContent = totalCount + ' เล่ม';
+        }
+      }
+
+      if (emptyRow) {
+        emptyRow.hidden = visibleCount > 0;
+      }
+
+      if (clearBtn) {
+        clearBtn.style.visibility = (query || statusFilter) ? 'visible' : 'hidden';
+      }
+    }
+
+    searchInput.addEventListener('input', filterInventory);
+    if (statusSelect) {
+      statusSelect.addEventListener('change', filterInventory);
+    }
+    if (clearBtn) {
+      clearBtn.addEventListener('click', function () {
+        searchInput.value = '';
+        if (statusSelect) statusSelect.value = '';
+        filterInventory();
+        searchInput.focus();
+      });
+      clearBtn.style.visibility = 'hidden';
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     initTabs();
     initModals();
+    initInventorySearch();
 
     const base = '/api/shops/' + shopId();
 
