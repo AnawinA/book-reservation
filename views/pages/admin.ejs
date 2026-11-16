@@ -19,75 +19,46 @@
   </div>
 </header>
 
-<nav class="subnav" aria-label="ส่วนของผู้ดูแลระบบ">
-  <a href="#shops">ร้านค้า</a>
-  <a href="#books">หนังสือ</a>
-  <a href="#campaigns">แคมเปญ</a>
-  <a href="#rewards">ของรางวัล</a>
-  <a href="#overdue">เกินกำหนดส่ง</a>
+<section class="kpi-grid">
+  <div class="kpi"><span class="kpi-value"><%= stats.bookCount %></span><span class="kpi-label">รายชื่อหนังสือ</span></div>
+  <div class="kpi"><span class="kpi-value"><%= stats.shopCount %></span><span class="kpi-label">ร้านค้า</span></div>
+  <div class="kpi"><span class="kpi-value"><%= stats.activeCampaigns %></span><span class="kpi-label">แคมเปญที่เปิดอยู่</span></div>
+  <div class="kpi"><span class="kpi-value"><%= stats.totalRewardStock %></span><span class="kpi-label">ของรางวัลคงเหลือ</span></div>
+  <div class="kpi"><span class="kpi-value"><%= stats.overdueCount %></span><span class="kpi-label">รายการเกินกำหนดส่ง</span></div>
+</section>
+
+<nav class="subnav" role="tablist" aria-label="ส่วนของผู้ดูแลระบบ">
+  <a href="#books" role="tab" id="tab-books" aria-controls="books" aria-selected="true" class="is-active">หนังสือ</a>
+  <a href="#shops" role="tab" id="tab-shops" aria-controls="shops" aria-selected="false">ร้านค้า</a>
+  <a href="#campaigns" role="tab" id="tab-campaigns" aria-controls="campaigns" aria-selected="false">แคมเปญ</a>
+  <a href="#rewards" role="tab" id="tab-rewards" aria-controls="rewards" aria-selected="false">ของรางวัล</a>
+  <a href="#overdue" role="tab" id="tab-overdue" aria-controls="overdue" aria-selected="false">เกินกำหนดส่ง</a>
 </nav>
 
-<section class="kpi-grid">
-  <div class="kpi"><span class="kpi-value"><%= stats.shopCount %></span><span class="kpi-label">ร้านค้า</span></div>
-  <div class="kpi"><span class="kpi-value"><%= stats.bookCount %></span><span class="kpi-label">รายชื่อหนังสือ</span></div>
-  <div class="kpi"><span class="kpi-value"><%= stats.activeCampaigns %></span><span class="kpi-label">แคมเปญที่เปิดอยู่</span></div>
-  <div class="kpi"><span class="kpi-value"><%= stats.overdueCount %></span><span class="kpi-label">รายการเกินกำหนดส่ง</span></div>
-  <div class="kpi"><span class="kpi-value"><%= stats.totalRewardStock %></span><span class="kpi-label">ของรางวัลคงเหลือ</span></div>
-</section>
-
-<section class="card" id="shops">
-  <div class="card-header">
-    <h2>ร้านค้า</h2>
-    <span class="count-chip"><%= shops.length %> รายการ</span>
-  </div>
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th scope="col">ID</th>
-          <th scope="col">ชื่อร้าน</th>
-          <th scope="col">ที่ตั้ง</th>
-          <th scope="col">จำนวนหนังสือ</th>
-          <th scope="col">พร้อมยืม</th>
-          <th scope="col">การจัดการ</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% shops.forEach(function (shop) { %>
-          <tr>
-            <td data-label="ID"><%= shop.id %></td>
-            <td data-label="ชื่อร้าน"><strong><%= shop.name %></strong></td>
-            <td data-label="ที่ตั้ง"><%= shop.location %></td>
-            <td data-label="จำนวนหนังสือ"><%= shop.totalItems %></td>
-            <td data-label="พร้อมยืม"><%= shop.availableItems %></td>
-            <td data-label="การจัดการ">
-              <button type="button" class="btn btn-ghost btn-sm edit-btn" data-entity="shop" data-id="<%= shop.id %>" data-json="<%= JSON.stringify({ name: shop.name, location: shop.location }) %>">แก้ไข</button>
-              <button type="button" class="btn btn-danger btn-sm delete-shop-btn" data-id="<%= shop.id %>">ลบ</button>
-            </td>
-          </tr>
-        <% }); %>
-      </tbody>
-    </table>
-  </div>
-
-  <form id="shopForm" class="inline-form" data-mode="create">
-    <div class="field">
-      <label for="shopName">ชื่อร้าน</label>
-      <input id="shopName" name="name" required maxlength="100">
-    </div>
-    <div class="field">
-      <label for="shopLocation">ที่ตั้ง</label>
-      <input id="shopLocation" name="location" required maxlength="255">
-    </div>
-    <button class="btn" type="submit">สร้างร้านค้า</button>
-  </form>
-</section>
-
-<section class="card" id="books">
+<!-- Tab 1: หนังสือ (First tab, active by default) -->
+<section class="card tab-panel is-active" id="books" role="tabpanel" aria-labelledby="tab-books">
   <div class="card-header">
     <h2>รายการหนังสือ</h2>
-    <span class="count-chip">แสดง <%= books.length %> รายการ</span>
+    <span class="count-chip"><%= books.length %> รายการ</span>
   </div>
+
+  <div class="service-row" style="margin-bottom: 1.25rem;">
+    <div class="service-info">
+      <div class="service-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
+          <path d="M12 6v7"/>
+          <path d="m9 10 3-3 3 3"/>
+        </svg>
+      </div>
+      <div>
+        <h3 class="service-title">เพิ่มหนังสือใหม่เข้าระบบ</h3>
+        <p class="service-desc">ลงทะเบียนหนังสือใหม่ด้วยรหัส ISBN ชื่อเรื่อง ผู้แต่ง และหมวดหมู่</p>
+      </div>
+    </div>
+    <button type="button" class="btn open-modal-btn" data-modal="modal-book">+ เพิ่มหนังสือ</button>
+  </div>
+
   <div class="table-wrap">
     <table>
       <thead>
@@ -118,33 +89,84 @@
       </tbody>
     </table>
   </div>
-
-  <form id="bookForm" class="inline-form" data-mode="create">
-    <div class="field">
-      <label for="bookIsbn">ISBN</label>
-      <input id="bookIsbn" name="isbn" required placeholder="9780132350884">
-    </div>
-    <div class="field">
-      <label for="bookTitle">ชื่อเรื่อง</label>
-      <input id="bookTitle" name="title" required maxlength="255">
-    </div>
-    <div class="field">
-      <label for="bookAuthor">ผู้แต่ง</label>
-      <input id="bookAuthor" name="author" required maxlength="255">
-    </div>
-    <div class="field">
-      <label for="bookCategory">หมวดหมู่</label>
-      <input id="bookCategory" name="category" required maxlength="50">
-    </div>
-    <button class="btn" type="submit">เพิ่มหนังสือ</button>
-  </form>
 </section>
 
-<section class="card" id="campaigns">
+<!-- Tab 2: ร้านค้า -->
+<section class="card tab-panel" id="shops" role="tabpanel" aria-labelledby="tab-shops" hidden>
+  <div class="card-header">
+    <h2>ร้านค้า</h2>
+    <span class="count-chip"><%= shops.length %> ร้านค้า</span>
+  </div>
+
+  <div class="service-row" style="margin-bottom: 1.25rem;">
+    <div class="service-info">
+      <div class="service-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+      </div>
+      <div>
+        <h3 class="service-title">สร้างร้านค้าใหม่</h3>
+        <p class="service-desc">ลงทะเบียนสาขาร้านค้าใหม่เข้าสู่เครือข่าย พร้อมระบุชื่อสาขาและที่ตั้ง</p>
+      </div>
+    </div>
+    <button type="button" class="btn open-modal-btn" data-modal="modal-shop">+ สร้างร้านค้า</button>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">ID</th>
+          <th scope="col">ชื่อร้าน</th>
+          <th scope="col">ที่ตั้ง</th>
+          <th scope="col">จำนวนหนังสือ</th>
+          <th scope="col">พร้อมยืม</th>
+          <th scope="col">การจัดการ</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% shops.forEach(function (shop) { %>
+          <tr>
+            <td data-label="ID"><%= shop.id %></td>
+            <td data-label="ชื่อร้าน"><strong><%= shop.name %></strong></td>
+            <td data-label="ที่ตั้ง"><%= shop.location %></td>
+            <td data-label="จำนวนหนังสือ"><%= shop.totalItems %></td>
+            <td data-label="พร้อมยืม"><%= shop.availableItems %></td>
+            <td data-label="การจัดการ">
+              <button type="button" class="btn btn-ghost btn-sm edit-btn" data-entity="shop" data-id="<%= shop.id %>" data-json="<%= JSON.stringify({ name: shop.name, location: shop.location }) %>">แก้ไข</button>
+              <button type="button" class="btn btn-danger btn-sm delete-shop-btn" data-id="<%= shop.id %>">ลบ</button>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- Tab 3: แคมเปญ -->
+<section class="card tab-panel" id="campaigns" role="tabpanel" aria-labelledby="tab-campaigns" hidden>
   <div class="card-header">
     <h2>แคมเปญ</h2>
     <span class="count-chip"><%= campaigns.length %> รายการ</span>
   </div>
+
+  <div class="service-row" style="margin-bottom: 1.25rem;">
+    <div class="service-info">
+      <div class="service-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+        </svg>
+      </div>
+      <div>
+        <h3 class="service-title">สร้างแคมเปญใหม่</h3>
+        <p class="service-desc">กำหนดแคมเปญแต้มโบนัสสำหรับการบริจาคหนังสือ พร้อมระยะเวลาเริ่มต้นและสิ้นสุด</p>
+      </div>
+    </div>
+    <button type="button" class="btn open-modal-btn" data-modal="modal-campaign">+ สร้างแคมเปญ</button>
+  </div>
+
   <div class="table-wrap">
     <table>
       <thead>
@@ -177,37 +199,34 @@
       </tbody>
     </table>
   </div>
-
-  <form id="campaignForm" class="inline-form" data-mode="create">
-    <div class="field">
-      <label for="campaignTitle">ชื่อแคมเปญ</label>
-      <input id="campaignTitle" name="title" required maxlength="150">
-    </div>
-    <div class="field">
-      <label for="campaignBonus">แต้มโบนัส</label>
-      <input id="campaignBonus" name="bonusPoints" type="number" min="0" max="1000" value="0" data-numeric="true">
-    </div>
-    <div class="field">
-      <label for="campaignShop">รหัสร้านค้า (Shop ID)</label>
-      <input id="campaignShop" name="shopId" type="number" min="1" required data-numeric="true">
-    </div>
-    <div class="field">
-      <label for="campaignStart">วันเริ่มต้น</label>
-      <input id="campaignStart" name="startAt" type="datetime-local" required>
-    </div>
-    <div class="field">
-      <label for="campaignEnd">วันสิ้นสุด</label>
-      <input id="campaignEnd" name="endAt" type="datetime-local" required>
-    </div>
-    <button class="btn" type="submit">สร้างแคมเปญ</button>
-  </form>
 </section>
 
-<section class="card" id="rewards">
+<!-- Tab 4: ของรางวัล -->
+<section class="card tab-panel" id="rewards" role="tabpanel" aria-labelledby="tab-rewards" hidden>
   <div class="card-header">
     <h2>ของรางวัล</h2>
     <span class="count-chip"><%= rewards.length %> รายการ</span>
   </div>
+
+  <div class="service-row" style="margin-bottom: 1.25rem;">
+    <div class="service-info">
+      <div class="service-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 12v10H4V12"/>
+          <path d="M2 7h20v5H2z"/>
+          <path d="M12 22V7"/>
+          <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/>
+          <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
+        </svg>
+      </div>
+      <div>
+        <h3 class="service-title">เพิ่มของรางวัลใหม่</h3>
+        <p class="service-desc">สร้างของรางวัลที่สมาชิกสามารถใช้แต้มสะสมแลกรับได้ พร้อมกำหนดจำนวนคงเหลือ</p>
+      </div>
+    </div>
+    <button type="button" class="btn open-modal-btn" data-modal="modal-reward">+ เพิ่มของรางวัล</button>
+  </div>
+
   <div class="table-wrap">
     <table>
       <thead>
@@ -236,29 +255,10 @@
       </tbody>
     </table>
   </div>
-
-  <form id="rewardForm" class="inline-form" data-mode="create">
-    <div class="field">
-      <label for="rewardTitle">ชื่อรางวัล</label>
-      <input id="rewardTitle" name="title" required maxlength="150">
-    </div>
-    <div class="field">
-      <label for="rewardCost">แต้มที่ใช้</label>
-      <input id="rewardCost" name="pointsCost" type="number" min="1" max="100000" required data-numeric="true">
-    </div>
-    <div class="field">
-      <label for="rewardStock">จำนวนคงเหลือ</label>
-      <input id="rewardStock" name="stock" type="number" min="0" max="100000" value="0" data-numeric="true">
-    </div>
-    <div class="field">
-      <label for="rewardShop">รหัสร้านค้า (Shop ID)</label>
-      <input id="rewardShop" name="shopId" type="number" min="1" required data-numeric="true">
-    </div>
-    <button class="btn" type="submit">เพิ่มของรางวัล</button>
-  </form>
 </section>
 
-<section class="card" id="overdue">
+<!-- Tab 5: รายงานหนังสือเกินกำหนดส่ง -->
+<section class="card tab-panel" id="overdue" role="tabpanel" aria-labelledby="tab-overdue" hidden>
   <div class="card-header">
     <h2>รายงานหนังสือเกินกำหนดส่ง <span class="sr-only">Overdue report</span></h2>
     <span class="count-chip"><%= overdue.length %> รายการ</span>
@@ -296,5 +296,131 @@
     </div>
   <% } %>
 </section>
+
+<!-- ========================= Admin Modals (Blurred Backdrop) ========================= -->
+
+<!-- Modal 1: ร้านค้า -->
+<div class="modal-backdrop" id="modal-shop" role="dialog" aria-modal="true" aria-labelledby="modal-shop-title" hidden>
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h2 id="modal-shop-title">สร้างร้านค้าใหม่</h2>
+      <button type="button" class="modal-close-btn" aria-label="ปิด">&times;</button>
+    </div>
+    <form id="shopForm" class="stack" data-mode="create">
+      <div class="field">
+        <label for="shopName">ชื่อร้าน</label>
+        <input id="shopName" name="name" required maxlength="100" placeholder="เช่น สาขาสยามสแควร์">
+      </div>
+      <div class="field">
+        <label for="shopLocation">ที่ตั้ง</label>
+        <input id="shopLocation" name="location" required maxlength="255" placeholder="เช่น ปทุมวัน, กรุงเทพมหานคร">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost modal-cancel-btn" type="button">ยกเลิก</button>
+        <button class="btn" type="submit">สร้างร้านค้า</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal 2: หนังสือ -->
+<div class="modal-backdrop" id="modal-book" role="dialog" aria-modal="true" aria-labelledby="modal-book-title" hidden>
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h2 id="modal-book-title">เพิ่มหนังสือใหม่เข้าระบบ</h2>
+      <button type="button" class="modal-close-btn" aria-label="ปิด">&times;</button>
+    </div>
+    <form id="bookForm" class="stack" data-mode="create">
+      <div class="field">
+        <label for="bookIsbn">ISBN</label>
+        <input id="bookIsbn" name="isbn" required placeholder="9780132350884">
+      </div>
+      <div class="field">
+        <label for="bookTitle">ชื่อเรื่อง</label>
+        <input id="bookTitle" name="title" required maxlength="255" placeholder="ชื่อหนังสือ">
+      </div>
+      <div class="field">
+        <label for="bookAuthor">ผู้แต่ง</label>
+        <input id="bookAuthor" name="author" required maxlength="255" placeholder="ชื่อผู้แต่ง">
+      </div>
+      <div class="field">
+        <label for="bookCategory">หมวดหมู่</label>
+        <input id="bookCategory" name="category" required maxlength="50" placeholder="เช่น เทคโนโลยี, วรรณกรรม">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost modal-cancel-btn" type="button">ยกเลิก</button>
+        <button class="btn" type="submit">เพิ่มหนังสือ</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal 3: แคมเปญ -->
+<div class="modal-backdrop" id="modal-campaign" role="dialog" aria-modal="true" aria-labelledby="modal-campaign-title" hidden>
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h2 id="modal-campaign-title">สร้างแคมเปญใหม่</h2>
+      <button type="button" class="modal-close-btn" aria-label="ปิด">&times;</button>
+    </div>
+    <form id="campaignForm" class="stack" data-mode="create">
+      <div class="field">
+        <label for="campaignTitle">ชื่อแคมเปญ</label>
+        <input id="campaignTitle" name="title" required maxlength="150" placeholder="เช่น บริจาคหนังสือรับแต้ม x2">
+      </div>
+      <div class="field">
+        <label for="campaignBonus">แต้มโบนัส</label>
+        <input id="campaignBonus" name="bonusPoints" type="number" min="0" max="1000" value="0" data-numeric="true">
+      </div>
+      <div class="field">
+        <label for="campaignShop">รหัสร้านค้า (Shop ID)</label>
+        <input id="campaignShop" name="shopId" type="number" min="1" required data-numeric="true" placeholder="1">
+      </div>
+      <div class="field">
+        <label for="campaignStart">วันเริ่มต้น</label>
+        <input id="campaignStart" name="startAt" type="datetime-local" required>
+      </div>
+      <div class="field">
+        <label for="campaignEnd">วันสิ้นสุด</label>
+        <input id="campaignEnd" name="endAt" type="datetime-local" required>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost modal-cancel-btn" type="button">ยกเลิก</button>
+        <button class="btn" type="submit">สร้างแคมเปญ</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal 4: ของรางวัล -->
+<div class="modal-backdrop" id="modal-reward" role="dialog" aria-modal="true" aria-labelledby="modal-reward-title" hidden>
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h2 id="modal-reward-title">เพิ่มของรางวัลใหม่</h2>
+      <button type="button" class="modal-close-btn" aria-label="ปิด">&times;</button>
+    </div>
+    <form id="rewardForm" class="stack" data-mode="create">
+      <div class="field">
+        <label for="rewardTitle">ชื่อรางวัล</label>
+        <input id="rewardTitle" name="title" required maxlength="150" placeholder="เช่น กระเป๋าผ้า KMITL">
+      </div>
+      <div class="field">
+        <label for="rewardCost">แต้มที่ใช้</label>
+        <input id="rewardCost" name="pointsCost" type="number" min="1" max="100000" required data-numeric="true" placeholder="100">
+      </div>
+      <div class="field">
+        <label for="rewardStock">จำนวนคงเหลือ</label>
+        <input id="rewardStock" name="stock" type="number" min="0" max="100000" value="0" data-numeric="true">
+      </div>
+      <div class="field">
+        <label for="rewardShop">รหัสร้านค้า (Shop ID)</label>
+        <input id="rewardShop" name="shopId" type="number" min="1" required data-numeric="true" placeholder="1">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost modal-cancel-btn" type="button">ยกเลิก</button>
+        <button class="btn" type="submit">เพิ่มของรางวัล</button>
+      </div>
+    </form>
+  </div>
+</div>
 
 <%- include('../partials/footer') %>
