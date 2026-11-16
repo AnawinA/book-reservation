@@ -79,8 +79,145 @@
     });
   }
 
+  function initModals() {
+    const openButtons = document.querySelectorAll('.open-modal-btn');
+    const closeButtons = document.querySelectorAll('.modal-close-btn, .modal-cancel-btn');
+    const modals = document.querySelectorAll('.modal-backdrop');
+
+    function openModal(modalId) {
+      const modal = document.getElementById(modalId);
+      if (!modal) return;
+      modal.removeAttribute('hidden');
+      document.body.classList.add('modal-open');
+      const firstInput = modal.querySelector('input:not([type="hidden"]), select, textarea, button[type="submit"]');
+      if (firstInput) firstInput.focus();
+    }
+
+    function closeModal(modal) {
+      if (!modal) return;
+      modal.setAttribute('hidden', '');
+      const anyOpen = Array.from(modals).some(function (m) {
+        return !m.hasAttribute('hidden');
+      });
+      if (!anyOpen) {
+        document.body.classList.remove('modal-open');
+      }
+    }
+
+    function closeAllModals() {
+      modals.forEach(closeModal);
+    }
+
+    openButtons.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const modalId = btn.dataset.modal;
+        if (modalId) openModal(modalId);
+      });
+    });
+
+    closeButtons.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const modal = btn.closest('.modal-backdrop');
+        if (modal) closeModal(modal);
+      });
+    });
+
+    modals.forEach(function (modal) {
+      modal.addEventListener('click', function (e) {
+        if (e.target === modal) {
+          closeModal(modal);
+        }
+      });
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') {
+        closeAllModals();
+      }
+    });
+  }
+
+  function dismissModalOf(element) {
+    const modal = element && element.closest('.modal-backdrop');
+    if (modal) {
+      modal.setAttribute('hidden', '');
+      document.body.classList.remove('modal-open');
+    }
+  }
+
+  function initInventorySearch() {
+    const searchInput = document.getElementById('inventorySearch');
+    const statusSelect = document.getElementById('inventoryStatusFilter');
+    const clearBtn = document.getElementById('inventoryClearBtn');
+    const table = document.getElementById('inventoryTable');
+    const countChip = document.getElementById('inventoryCountChip');
+    const emptyRow = document.getElementById('inventoryEmptySearch');
+
+    if (!searchInput || !table) return;
+
+    const tbody = table.querySelector('tbody');
+    if (!tbody) return;
+
+    const rows = Array.from(tbody.querySelectorAll('tr:not(#inventoryEmptySearch)'));
+    const totalCount = rows.length;
+
+    function filterInventory() {
+      const query = (searchInput.value || '').trim().toLowerCase();
+      const statusFilter = (statusSelect ? statusSelect.value : '').toUpperCase();
+
+      let visibleCount = 0;
+
+      rows.forEach(function (row) {
+        const text = row.textContent.toLowerCase();
+        const rowStatus = (row.dataset.status || '').toUpperCase();
+
+        const matchesQuery = !query || text.includes(query);
+        const matchesStatus = !statusFilter || rowStatus === statusFilter;
+
+        if (matchesQuery && matchesStatus) {
+          row.style.display = '';
+          visibleCount++;
+        } else {
+          row.style.display = 'none';
+        }
+      });
+
+      if (countChip) {
+        if (query || statusFilter) {
+          countChip.textContent = 'พบ ' + visibleCount + ' จาก ' + totalCount + ' เล่ม';
+        } else {
+          countChip.textContent = totalCount + ' เล่ม';
+        }
+      }
+
+      if (emptyRow) {
+        emptyRow.hidden = visibleCount > 0;
+      }
+
+      if (clearBtn) {
+        clearBtn.style.visibility = (query || statusFilter) ? 'visible' : 'hidden';
+      }
+    }
+
+    searchInput.addEventListener('input', filterInventory);
+    if (statusSelect) {
+      statusSelect.addEventListener('change', filterInventory);
+    }
+    if (clearBtn) {
+      clearBtn.addEventListener('click', function () {
+        searchInput.value = '';
+        if (statusSelect) statusSelect.value = '';
+        filterInventory();
+        searchInput.focus();
+      });
+      clearBtn.style.visibility = 'hidden';
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     initTabs();
+    initModals();
+    initInventorySearch();
 
     const base = '/api/shops/' + shopId();
 
@@ -90,6 +227,7 @@
         event.preventDefault();
         try {
           const result = await window.App.apiFetch('POST', base + '/donations', window.App.formToJSON(donationForm));
+          dismissModalOf(donationForm);
           window.App.showMessage(
             'บันทึกการบริจาคเรียบร้อย (' + result.item.barcode + '), ได้รับ ' + result.pointsAwarded + ' แต้ม'
           );
@@ -107,6 +245,7 @@
         event.preventDefault();
         try {
           const result = await window.App.apiFetch('POST', base + '/borrows', window.App.formToJSON(borrowForm));
+          dismissModalOf(borrowForm);
           window.App.showMessage('ยืมหนังสือ ' + result.item.barcode + ' สำเร็จ กำหนดส่งคืน ' + result.item.dueDate);
           borrowForm.reset();
           reloadSoon();
@@ -122,6 +261,7 @@
         event.preventDefault();
         try {
           const result = await window.App.apiFetch('POST', base + '/returns', window.App.formToJSON(returnForm));
+          dismissModalOf(returnForm);
           window.App.showMessage(
             'คืนหนังสือสำเร็จ' + (result.wasOverdue ? ' (รายการนี้เกินกำหนดส่ง)' : '')
           );
@@ -144,6 +284,7 @@
             '/api/book-items/' + encodeURIComponent(String(data.barcode).toUpperCase()) + '/status',
             { status: data.status }
           );
+          dismissModalOf(statusForm);
           window.App.showMessage('สถานะของ ' + item.barcode + ' เปลี่ยนเป็น ' + item.status + ' แล้ว');
           statusForm.reset();
           reloadSoon();
@@ -159,6 +300,7 @@
         event.preventDefault();
         try {
           const result = await window.App.apiFetch('PATCH', base + '/rewards/claim', window.App.formToJSON(claimForm));
+          dismissModalOf(claimForm);
           window.App.showMessage(
             'รหัสแลกของรางวัลถูกต้องสำหรับ ' + result.customer.username + ' (' + result.reward.title + ')'
           );
