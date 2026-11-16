@@ -1,68 +1,68 @@
 <%- include('../partials/header') %>
 
 <nav class="breadcrumb" aria-label="Breadcrumb">
-  <a href="/">Catalog</a>
+  <a href="/">รายการหนังสือ</a>
   <span aria-hidden="true">/</span>
-  <span aria-current="page">Administration</span>
+  <span aria-current="page">การจัดการระบบ</span>
 </nav>
 
 <header class="page-head">
   <div>
-    <p class="eyebrow">Admin</p>
-    <h1>Administration</h1>
-    <p class="muted">Manage the shop network, catalog, campaigns, rewards and overdue loans.</p>
+    <p class="eyebrow">ผู้ดูแลระบบ</p>
+    <h1>การจัดการระบบ <span class="sr-only">Administration</span></h1>
+    <p class="muted">จัดการเครือข่ายร้านค้า รายการหนังสือ แคมเปญ ของรางวัล และรายงานหนังสือเกินกำหนดส่ง</p>
   </div>
   <div class="page-head-meta">
-    <span class="badge"><%= stats.shopCount %> shops</span>
-    <span class="badge"><%= stats.bookCount %> titles</span>
-    <span class="badge badge-damaged"><%= stats.overdueCount %> overdue</span>
+    <span class="badge"><%= stats.shopCount %> ร้านค้า</span>
+    <span class="badge"><%= stats.bookCount %> รายชื่อ</span>
+    <span class="badge badge-damaged"><%= stats.overdueCount %> เกินกำหนด</span>
   </div>
 </header>
 
-<nav class="subnav" aria-label="Admin sections">
-  <a href="#shops">Shops</a>
-  <a href="#books">Books</a>
-  <a href="#campaigns">Campaigns</a>
-  <a href="#rewards">Rewards</a>
-  <a href="#overdue">Overdue</a>
+<nav class="subnav" aria-label="ส่วนของผู้ดูแลระบบ">
+  <a href="#shops">ร้านค้า</a>
+  <a href="#books">หนังสือ</a>
+  <a href="#campaigns">แคมเปญ</a>
+  <a href="#rewards">ของรางวัล</a>
+  <a href="#overdue">เกินกำหนดส่ง</a>
 </nav>
 
 <section class="kpi-grid">
-  <div class="kpi"><span class="kpi-value"><%= stats.shopCount %></span><span class="kpi-label">Shops</span></div>
-  <div class="kpi"><span class="kpi-value"><%= stats.bookCount %></span><span class="kpi-label">Titles</span></div>
-  <div class="kpi"><span class="kpi-value"><%= stats.activeCampaigns %></span><span class="kpi-label">Active campaigns</span></div>
-  <div class="kpi"><span class="kpi-value"><%= stats.overdueCount %></span><span class="kpi-label">Overdue loans</span></div>
-  <div class="kpi"><span class="kpi-value"><%= stats.totalRewardStock %></span><span class="kpi-label">Reward stock</span></div>
+  <div class="kpi"><span class="kpi-value"><%= stats.shopCount %></span><span class="kpi-label">ร้านค้า</span></div>
+  <div class="kpi"><span class="kpi-value"><%= stats.bookCount %></span><span class="kpi-label">รายชื่อหนังสือ</span></div>
+  <div class="kpi"><span class="kpi-value"><%= stats.activeCampaigns %></span><span class="kpi-label">แคมเปญที่เปิดอยู่</span></div>
+  <div class="kpi"><span class="kpi-value"><%= stats.overdueCount %></span><span class="kpi-label">รายการเกินกำหนดส่ง</span></div>
+  <div class="kpi"><span class="kpi-value"><%= stats.totalRewardStock %></span><span class="kpi-label">ของรางวัลคงเหลือ</span></div>
 </section>
 
 <section class="card" id="shops">
   <div class="card-header">
-    <h2>Shops</h2>
-    <span class="count-chip"><%= shops.length %> records</span>
+    <h2>ร้านค้า</h2>
+    <span class="count-chip"><%= shops.length %> รายการ</span>
   </div>
   <div class="table-wrap">
     <table>
       <thead>
         <tr>
           <th scope="col">ID</th>
-          <th scope="col">Name</th>
-          <th scope="col">Location</th>
-          <th scope="col">Items</th>
-          <th scope="col">Available</th>
-          <th scope="col">Actions</th>
+          <th scope="col">ชื่อร้าน</th>
+          <th scope="col">ที่ตั้ง</th>
+          <th scope="col">จำนวนหนังสือ</th>
+          <th scope="col">พร้อมยืม</th>
+          <th scope="col">การจัดการ</th>
         </tr>
       </thead>
       <tbody>
         <% shops.forEach(function (shop) { %>
           <tr>
             <td data-label="ID"><%= shop.id %></td>
-            <td data-label="Name"><strong><%= shop.name %></strong></td>
-            <td data-label="Location"><%= shop.location %></td>
-            <td data-label="Items"><%= shop.totalItems %></td>
-            <td data-label="Available"><%= shop.availableItems %></td>
-            <td data-label="Actions">
-              <button type="button" class="btn btn-ghost btn-sm edit-btn" data-entity="shop" data-id="<%= shop.id %>" data-json="<%= JSON.stringify({ name: shop.name, location: shop.location }) %>">Edit</button>
-              <button type="button" class="btn btn-danger btn-sm delete-shop-btn" data-id="<%= shop.id %>">Delete</button>
+            <td data-label="ชื่อร้าน"><strong><%= shop.name %></strong></td>
+            <td data-label="ที่ตั้ง"><%= shop.location %></td>
+            <td data-label="จำนวนหนังสือ"><%= shop.totalItems %></td>
+            <td data-label="พร้อมยืม"><%= shop.availableItems %></td>
+            <td data-label="การจัดการ">
+              <button type="button" class="btn btn-ghost btn-sm edit-btn" data-entity="shop" data-id="<%= shop.id %>" data-json="<%= JSON.stringify({ name: shop.name, location: shop.location }) %>">แก้ไข</button>
+              <button type="button" class="btn btn-danger btn-sm delete-shop-btn" data-id="<%= shop.id %>">ลบ</button>
             </td>
           </tr>
         <% }); %>
@@ -72,21 +72,21 @@
 
   <form id="shopForm" class="inline-form" data-mode="create">
     <div class="field">
-      <label for="shopName">Name</label>
+      <label for="shopName">ชื่อร้าน</label>
       <input id="shopName" name="name" required maxlength="100">
     </div>
     <div class="field">
-      <label for="shopLocation">Location</label>
+      <label for="shopLocation">ที่ตั้ง</label>
       <input id="shopLocation" name="location" required maxlength="255">
     </div>
-    <button class="btn" type="submit">Create shop</button>
+    <button class="btn" type="submit">สร้างร้านค้า</button>
   </form>
 </section>
 
 <section class="card" id="books">
   <div class="card-header">
-    <h2>Book collections</h2>
-    <span class="count-chip"><%= books.length %> shown</span>
+    <h2>รายการหนังสือ</h2>
+    <span class="count-chip">แสดง <%= books.length %> รายการ</span>
   </div>
   <div class="table-wrap">
     <table>
@@ -94,11 +94,11 @@
         <tr>
           <th scope="col">ID</th>
           <th scope="col">ISBN</th>
-          <th scope="col">Title</th>
-          <th scope="col">Author</th>
-          <th scope="col">Category</th>
-          <th scope="col">Copies</th>
-          <th scope="col">Actions</th>
+          <th scope="col">ชื่อเรื่อง</th>
+          <th scope="col">ผู้แต่ง</th>
+          <th scope="col">หมวดหมู่</th>
+          <th scope="col">จำนวนเล่ม</th>
+          <th scope="col">การจัดการ</th>
         </tr>
       </thead>
       <tbody>
@@ -106,12 +106,12 @@
           <tr>
             <td data-label="ID"><%= book.id %></td>
             <td data-label="ISBN"><%= book.isbn %></td>
-            <td data-label="Title"><strong><%= book.title %></strong></td>
-            <td data-label="Author"><%= book.author %></td>
-            <td data-label="Category"><span class="badge"><%= book.category %></span></td>
-            <td data-label="Copies"><%= book.availableCopies %> / <%= book.totalCopies %></td>
-            <td data-label="Actions">
-              <button type="button" class="btn btn-ghost btn-sm edit-btn" data-entity="book" data-id="<%= book.id %>" data-json="<%= JSON.stringify({ isbn: book.isbn, title: book.title, author: book.author, category: book.category }) %>">Edit</button>
+            <td data-label="ชื่อเรื่อง"><strong><%= book.title %></strong></td>
+            <td data-label="ผู้แต่ง"><%= book.author %></td>
+            <td data-label="หมวดหมู่"><span class="badge"><%= book.category %></span></td>
+            <td data-label="จำนวนเล่ม"><%= book.availableCopies %> / <%= book.totalCopies %></td>
+            <td data-label="การจัดการ">
+              <button type="button" class="btn btn-ghost btn-sm edit-btn" data-entity="book" data-id="<%= book.id %>" data-json="<%= JSON.stringify({ isbn: book.isbn, title: book.title, author: book.author, category: book.category }) %>">แก้ไข</button>
             </td>
           </tr>
         <% }); %>
@@ -125,52 +125,52 @@
       <input id="bookIsbn" name="isbn" required placeholder="9780132350884">
     </div>
     <div class="field">
-      <label for="bookTitle">Title</label>
+      <label for="bookTitle">ชื่อเรื่อง</label>
       <input id="bookTitle" name="title" required maxlength="255">
     </div>
     <div class="field">
-      <label for="bookAuthor">Author</label>
+      <label for="bookAuthor">ผู้แต่ง</label>
       <input id="bookAuthor" name="author" required maxlength="255">
     </div>
     <div class="field">
-      <label for="bookCategory">Category</label>
+      <label for="bookCategory">หมวดหมู่</label>
       <input id="bookCategory" name="category" required maxlength="50">
     </div>
-    <button class="btn" type="submit">Create book</button>
+    <button class="btn" type="submit">เพิ่มหนังสือ</button>
   </form>
 </section>
 
 <section class="card" id="campaigns">
   <div class="card-header">
-    <h2>Campaigns</h2>
-    <span class="count-chip"><%= campaigns.length %> records</span>
+    <h2>แคมเปญ</h2>
+    <span class="count-chip"><%= campaigns.length %> รายการ</span>
   </div>
   <div class="table-wrap">
     <table>
       <thead>
         <tr>
           <th scope="col">ID</th>
-          <th scope="col">Title</th>
-          <th scope="col">Bonus</th>
-          <th scope="col">Shop</th>
-          <th scope="col">Start</th>
-          <th scope="col">End</th>
-          <th scope="col">Active</th>
-          <th scope="col">Actions</th>
+          <th scope="col">ชื่อแคมเปญ</th>
+          <th scope="col">แต้มโบนัส</th>
+          <th scope="col">ร้านค้า</th>
+          <th scope="col">เริ่มต้น</th>
+          <th scope="col">สิ้นสุด</th>
+          <th scope="col">สถานะ</th>
+          <th scope="col">การจัดการ</th>
         </tr>
       </thead>
       <tbody>
         <% campaigns.forEach(function (campaign) { %>
           <tr>
             <td data-label="ID"><%= campaign.id %></td>
-            <td data-label="Title"><strong><%= campaign.title %></strong></td>
-            <td data-label="Bonus"><span class="badge badge-bonus">+<%= campaign.bonusPoints %></span></td>
-            <td data-label="Shop"><%= campaign.shopName %></td>
-            <td data-label="Start"><%= formatDate(campaign.startAt) %></td>
-            <td data-label="End"><%= formatDate(campaign.endAt) %></td>
-            <td data-label="Active"><span class="badge <%= campaign.isActive ? 'badge-available' : 'badge-lost' %>"><%= campaign.isActive ? 'YES' : 'NO' %></span></td>
-            <td data-label="Actions">
-              <button type="button" class="btn btn-ghost btn-sm edit-btn" data-entity="campaign" data-id="<%= campaign.id %>" data-json="<%= JSON.stringify({ title: campaign.title, bonusPoints: campaign.bonusPoints, shopId: campaign.shopId, startAt: campaign.startAt, endAt: campaign.endAt }) %>">Edit</button>
+            <td data-label="ชื่อแคมเปญ"><strong><%= campaign.title %></strong></td>
+            <td data-label="แต้มโบนัส"><span class="badge badge-bonus">+<%= campaign.bonusPoints %></span></td>
+            <td data-label="ร้านค้า"><%= campaign.shopName %></td>
+            <td data-label="เริ่มต้น"><%= formatDate(campaign.startAt) %></td>
+            <td data-label="สิ้นสุด"><%= formatDate(campaign.endAt) %></td>
+            <td data-label="สถานะ"><span class="badge <%= campaign.isActive ? 'badge-available' : 'badge-lost' %>"><%= campaign.isActive ? 'เปิด' : 'ปิด' %></span></td>
+            <td data-label="การจัดการ">
+              <button type="button" class="btn btn-ghost btn-sm edit-btn" data-entity="campaign" data-id="<%= campaign.id %>" data-json="<%= JSON.stringify({ title: campaign.title, bonusPoints: campaign.bonusPoints, shopId: campaign.shopId, startAt: campaign.startAt, endAt: campaign.endAt }) %>">แก้ไข</button>
             </td>
           </tr>
         <% }); %>
@@ -180,56 +180,56 @@
 
   <form id="campaignForm" class="inline-form" data-mode="create">
     <div class="field">
-      <label for="campaignTitle">Title</label>
+      <label for="campaignTitle">ชื่อแคมเปญ</label>
       <input id="campaignTitle" name="title" required maxlength="150">
     </div>
     <div class="field">
-      <label for="campaignBonus">Bonus points</label>
+      <label for="campaignBonus">แต้มโบนัส</label>
       <input id="campaignBonus" name="bonusPoints" type="number" min="0" max="1000" value="0" data-numeric="true">
     </div>
     <div class="field">
-      <label for="campaignShop">Shop ID</label>
+      <label for="campaignShop">รหัสร้านค้า (Shop ID)</label>
       <input id="campaignShop" name="shopId" type="number" min="1" required data-numeric="true">
     </div>
     <div class="field">
-      <label for="campaignStart">Start</label>
+      <label for="campaignStart">วันเริ่มต้น</label>
       <input id="campaignStart" name="startAt" type="datetime-local" required>
     </div>
     <div class="field">
-      <label for="campaignEnd">End</label>
+      <label for="campaignEnd">วันสิ้นสุด</label>
       <input id="campaignEnd" name="endAt" type="datetime-local" required>
     </div>
-    <button class="btn" type="submit">Create campaign</button>
+    <button class="btn" type="submit">สร้างแคมเปญ</button>
   </form>
 </section>
 
 <section class="card" id="rewards">
   <div class="card-header">
-    <h2>Rewards</h2>
-    <span class="count-chip"><%= rewards.length %> records</span>
+    <h2>ของรางวัล</h2>
+    <span class="count-chip"><%= rewards.length %> รายการ</span>
   </div>
   <div class="table-wrap">
     <table>
       <thead>
         <tr>
           <th scope="col">ID</th>
-          <th scope="col">Title</th>
-          <th scope="col">Cost</th>
-          <th scope="col">Stock</th>
-          <th scope="col">Shop</th>
-          <th scope="col">Actions</th>
+          <th scope="col">ชื่อรางวัล</th>
+          <th scope="col">แต้มที่ใช้</th>
+          <th scope="col">จำนวนคงเหลือ</th>
+          <th scope="col">ร้านค้า</th>
+          <th scope="col">การจัดการ</th>
         </tr>
       </thead>
       <tbody>
         <% rewards.forEach(function (reward) { %>
           <tr>
             <td data-label="ID"><%= reward.id %></td>
-            <td data-label="Title"><strong><%= reward.title %></strong></td>
-            <td data-label="Cost"><%= reward.pointsCost %> pts</td>
-            <td data-label="Stock"><%= reward.stock %></td>
-            <td data-label="Shop"><%= reward.shopName %></td>
-            <td data-label="Actions">
-              <button type="button" class="btn btn-ghost btn-sm edit-btn" data-entity="reward" data-id="<%= reward.id %>" data-json="<%= JSON.stringify({ title: reward.title, pointsCost: reward.pointsCost, stock: reward.stock, shopId: reward.shopId }) %>">Edit</button>
+            <td data-label="ชื่อรางวัล"><strong><%= reward.title %></strong></td>
+            <td data-label="แต้มที่ใช้"><%= reward.pointsCost %> แต้ม</td>
+            <td data-label="จำนวนคงเหลือ"><%= reward.stock %></td>
+            <td data-label="ร้านค้า"><%= reward.shopName %></td>
+            <td data-label="การจัดการ">
+              <button type="button" class="btn btn-ghost btn-sm edit-btn" data-entity="reward" data-id="<%= reward.id %>" data-json="<%= JSON.stringify({ title: reward.title, pointsCost: reward.pointsCost, stock: reward.stock, shopId: reward.shopId }) %>">แก้ไข</button>
             </td>
           </tr>
         <% }); %>
@@ -239,56 +239,56 @@
 
   <form id="rewardForm" class="inline-form" data-mode="create">
     <div class="field">
-      <label for="rewardTitle">Title</label>
+      <label for="rewardTitle">ชื่อรางวัล</label>
       <input id="rewardTitle" name="title" required maxlength="150">
     </div>
     <div class="field">
-      <label for="rewardCost">Points cost</label>
+      <label for="rewardCost">แต้มที่ใช้</label>
       <input id="rewardCost" name="pointsCost" type="number" min="1" max="100000" required data-numeric="true">
     </div>
     <div class="field">
-      <label for="rewardStock">Stock</label>
+      <label for="rewardStock">จำนวนคงเหลือ</label>
       <input id="rewardStock" name="stock" type="number" min="0" max="100000" value="0" data-numeric="true">
     </div>
     <div class="field">
-      <label for="rewardShop">Shop ID</label>
+      <label for="rewardShop">รหัสร้านค้า (Shop ID)</label>
       <input id="rewardShop" name="shopId" type="number" min="1" required data-numeric="true">
     </div>
-    <button class="btn" type="submit">Create reward</button>
+    <button class="btn" type="submit">เพิ่มของรางวัล</button>
   </form>
 </section>
 
 <section class="card" id="overdue">
   <div class="card-header">
-    <h2>Overdue report</h2>
-    <span class="count-chip"><%= overdue.length %> loan<%= overdue.length === 1 ? '' : 's' %></span>
+    <h2>รายงานหนังสือเกินกำหนดส่ง <span class="sr-only">Overdue report</span></h2>
+    <span class="count-chip"><%= overdue.length %> รายการ</span>
   </div>
   <% if (overdue.length === 0) { %>
-    <p class="muted">No overdue loans. Everything is on schedule.</p>
+    <p class="muted">ไม่มีหนังสือที่เกินกำหนดส่ง ทุกรายการตรงตามกำหนดเวลา</p>
   <% } else { %>
     <div class="table-wrap">
       <table>
         <thead>
           <tr>
-            <th scope="col">Barcode</th>
-            <th scope="col">Title</th>
-            <th scope="col">Borrower</th>
-            <th scope="col">Phone</th>
-            <th scope="col">Shop</th>
-            <th scope="col">Due date</th>
-            <th scope="col">Days overdue</th>
+            <th scope="col">บาร์โค้ด</th>
+            <th scope="col">ชื่อเรื่อง</th>
+            <th scope="col">ผู้ยืม</th>
+            <th scope="col">เบอร์โทรศัพท์</th>
+            <th scope="col">ร้านค้า</th>
+            <th scope="col">กำหนดส่งคืน</th>
+            <th scope="col">เกินกำหนด (วัน)</th>
           </tr>
         </thead>
         <tbody>
           <% overdue.forEach(function (row) { %>
             <tr class="row-overdue">
-              <td data-label="Barcode"><%= row.barcode %></td>
-              <td data-label="Title"><strong><%= row.title %></strong></td>
-              <td data-label="Borrower"><%= row.username %></td>
-              <td data-label="Phone"><%= row.phone %></td>
-              <td data-label="Shop"><%= row.shopName %></td>
-              <td data-label="Due date"><%= formatDate(row.dueDate) %></td>
-              <td data-label="Days overdue"><span class="badge badge-overdue"><%= row.daysOverdue %></span></td>
+              <td data-label="บาร์โค้ด"><%= row.barcode %></td>
+              <td data-label="ชื่อเรื่อง"><strong><%= row.title %></strong></td>
+              <td data-label="ผู้ยืม"><%= row.username %></td>
+              <td data-label="เบอร์โทรศัพท์"><%= row.phone %></td>
+              <td data-label="ร้านค้า"><%= row.shopName %></td>
+              <td data-label="กำหนดส่งคืน"><%= formatDate(row.dueDate) %></td>
+              <td data-label="เกินกำหนด (วัน)"><span class="badge badge-overdue"><%= row.daysOverdue %></span></td>
             </tr>
           <% }); %>
         </tbody>

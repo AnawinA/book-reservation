@@ -150,7 +150,7 @@ const renderDashboard = asyncHandler(async (req, res) => {
   };
 
   return res.render('pages/admin', {
-    title: 'Admin Dashboard',
+    title: 'แดชบอร์ดการจัดการระบบ',
     shops,
     books: books.items,
     campaigns,

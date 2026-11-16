@@ -1,22 +1,22 @@
 <%- include('../partials/header') %>
 
 <nav class="breadcrumb" aria-label="Breadcrumb">
-  <a href="/">Catalog</a>
+  <a href="/">รายการหนังสือ</a>
   <span aria-hidden="true">/</span>
-  <span aria-current="page">My dashboard</span>
+  <span aria-current="page">แดชบอร์ดของฉัน</span>
 </nav>
 
-<nav class="subnav" aria-label="Dashboard sections">
-  <a href="#borrows">On loan</a>
-  <a href="#donations">Donations</a>
-  <a href="#rewards">Rewards</a>
+<nav class="subnav" aria-label="ส่วนของแดชบอร์ด">
+  <a href="#borrows">กำลังยืม</a>
+  <a href="#donations">การบริจาค</a>
+  <a href="#rewards">ของรางวัล</a>
 </nav>
 
 <section class="card profile-card">
   <div class="profile-identity">
     <span class="avatar" aria-hidden="true"><%= profile.username.charAt(0).toUpperCase() %></span>
     <div>
-      <p class="eyebrow">Customer</p>
+      <p class="eyebrow">สมาชิกผู้ใช้งาน</p>
       <h1 class="profile-name"><%= profile.username %></h1>
       <p class="muted"><%= profile.phone %></p>
     </div>
@@ -24,56 +24,56 @@
   <div class="profile-stats">
     <div class="stat">
       <span class="stat-value"><%= profile.points %></span>
-      <span class="stat-label">points available</span>
+      <span class="stat-label">แต้มที่ใช้ได้ <span class="sr-only">points available</span></span>
     </div>
     <div class="stat">
       <span class="stat-value"><%= borrows.length %></span>
-      <span class="stat-label">On loan</span>
+      <span class="stat-label">กำลังยืม</span>
     </div>
     <div class="stat">
       <span class="stat-value"><%= borrows.filter(function (b) { return b.isOverdue; }).length %></span>
-      <span class="stat-label">Overdue</span>
+      <span class="stat-label">เกินกำหนดส่ง</span>
     </div>
     <div class="stat">
       <span class="stat-value"><%= donations.length %></span>
-      <span class="stat-label">Donations</span>
+      <span class="stat-label">การบริจาค</span>
     </div>
   </div>
 </section>
 
 <section class="card" id="borrows">
   <div class="card-header">
-    <h2>Active borrows</h2>
-    <span class="count-chip"><%= borrows.length %> item<%= borrows.length === 1 ? '' : 's' %></span>
+    <h2>หนังสือที่กำลังยืม</h2>
+    <span class="count-chip"><%= borrows.length %> เล่ม</span>
   </div>
   <% if (borrows.length === 0) { %>
-    <p class="muted">You have no books on loan. Visit a shop to borrow one.</p>
+    <p class="muted">คุณไม่มีหนังสือที่กำลังยืมอยู่ ไปที่ร้านค้าเพื่อยืมหนังสือได้เลย</p>
   <% } else { %>
     <div class="table-wrap">
       <table>
         <thead>
           <tr>
-            <th scope="col">Title</th>
-            <th scope="col">Barcode</th>
-            <th scope="col">Shop</th>
-            <th scope="col">Borrowed</th>
-            <th scope="col">Due</th>
-            <th scope="col">Status</th>
+            <th scope="col">ชื่อเรื่อง</th>
+            <th scope="col">บาร์โค้ด</th>
+            <th scope="col">ร้านค้า</th>
+            <th scope="col">วันที่ยืม</th>
+            <th scope="col">กำหนดส่งคืน</th>
+            <th scope="col">สถานะ</th>
           </tr>
         </thead>
         <tbody>
           <% borrows.forEach(function (borrow) { %>
             <tr class="<%= borrow.isOverdue ? 'row-overdue' : '' %>">
-              <td data-label="Title"><strong><%= borrow.title %></strong></td>
-              <td data-label="Barcode"><%= borrow.barcode %></td>
-              <td data-label="Shop"><%= borrow.shopName %></td>
-              <td data-label="Borrowed"><%= formatDate(borrow.borrowedAt) %></td>
-              <td data-label="Due"><%= formatDate(borrow.dueDate) %></td>
-              <td data-label="Status">
+              <td data-label="ชื่อเรื่อง"><strong><%= borrow.title %></strong></td>
+              <td data-label="บาร์โค้ด"><%= borrow.barcode %></td>
+              <td data-label="ร้านค้า"><%= borrow.shopName %></td>
+              <td data-label="วันที่ยืม"><%= formatDate(borrow.borrowedAt) %></td>
+              <td data-label="กำหนดส่งคืน"><%= formatDate(borrow.dueDate) %></td>
+              <td data-label="สถานะ">
                 <% if (borrow.isOverdue) { %>
-                  <span class="badge badge-overdue">Overdue by <%= Math.abs(borrow.daysRemaining) %> days</span>
+                  <span class="badge badge-overdue">เกินกำหนดส่ง <%= Math.abs(borrow.daysRemaining) %> วัน</span>
                 <% } else { %>
-                  <span class="badge badge-available"><%= borrow.daysRemaining %> days left</span>
+                  <span class="badge badge-available">เหลืออีก <%= borrow.daysRemaining %> วัน</span>
                 <% } %>
               </td>
             </tr>
@@ -86,31 +86,39 @@
 
 <section class="card" id="donations">
   <div class="card-header">
-    <h2>My donations</h2>
-    <span class="count-chip"><%= donations.length %> recorded</span>
+    <h2>ประวัติการบริจาคของฉัน</h2>
+    <span class="count-chip"><%= donations.length %> รายการ</span>
   </div>
   <% if (donations.length === 0) { %>
-    <p class="muted">You have not donated any books yet. Each donation earns base points plus any active campaign bonus.</p>
+    <p class="muted">คุณยังไม่ได้บริจาคหนังสือ การบริจาคแต่ละครั้งจะได้รับแต้มพื้นฐานและแต้มโบนัสจากแคมเปญที่เปิดอยู่</p>
   <% } else { %>
+    <%
+      var statusMap = {
+        'AVAILABLE': 'พร้อมยืม',
+        'BORROWED': 'กำลังยืม',
+        'DAMAGED': 'ชำรุด',
+        'LOST': 'สูญหาย'
+      };
+    %>
     <div class="table-wrap">
       <table>
         <thead>
           <tr>
-            <th scope="col">Title</th>
-            <th scope="col">Barcode</th>
-            <th scope="col">Shop</th>
-            <th scope="col">Campaign</th>
-            <th scope="col">Status</th>
+            <th scope="col">ชื่อเรื่อง</th>
+            <th scope="col">บาร์โค้ด</th>
+            <th scope="col">ร้านค้า</th>
+            <th scope="col">แคมเปญ</th>
+            <th scope="col">สถานะ</th>
           </tr>
         </thead>
         <tbody>
           <% donations.forEach(function (donation) { %>
             <tr>
-              <td data-label="Title"><strong><%= donation.title %></strong></td>
-              <td data-label="Barcode"><%= donation.barcode %></td>
-              <td data-label="Shop"><%= donation.shopName %></td>
-              <td data-label="Campaign"><%= donation.campaignTitle || '-' %></td>
-              <td data-label="Status"><span class="badge badge-<%= donation.status.toLowerCase() %>"><%= donation.status %></span></td>
+              <td data-label="ชื่อเรื่อง"><strong><%= donation.title %></strong></td>
+              <td data-label="บาร์โค้ด"><%= donation.barcode %></td>
+              <td data-label="ร้านค้า"><%= donation.shopName %></td>
+              <td data-label="แคมเปญ"><%= donation.campaignTitle || '-' %></td>
+              <td data-label="สถานะ"><span class="badge badge-<%= donation.status.toLowerCase() %>"><%= statusMap[donation.status] || donation.status %></span></td>
             </tr>
           <% }); %>
         </tbody>
@@ -121,8 +129,8 @@
 
 <section class="card" id="rewards">
   <div class="card-header">
-    <h2>Rewards</h2>
-    <span class="count-chip">You have <%= profile.points %> pts</span>
+    <h2>ของรางวัล</h2>
+    <span class="count-chip">คุณมี <%= profile.points %> แต้ม</span>
   </div>
   <div class="reward-grid">
     <% rewards.forEach(function (reward) { %>
@@ -130,8 +138,8 @@
         <span class="badge"><%= reward.shopName %></span>
         <h3><%= reward.title %></h3>
         <p class="muted">
-          <span class="badge badge-bonus"><%= reward.pointsCost %> pts</span>
-          &middot; <%= reward.stock %> in stock
+          <span class="badge badge-bonus"><%= reward.pointsCost %> แต้ม</span>
+          &middot; เหลือ <%= reward.stock %> ชิ้น
         </p>
         <button
           type="button"
@@ -140,15 +148,15 @@
           data-cost="<%= reward.pointsCost %>"
           data-title="<%= reward.title %>"
           <%= (reward.stock === 0 || reward.pointsCost > profile.points) ? 'disabled' : '' %>>
-          <%= reward.stock === 0 ? 'Out of stock' : (reward.pointsCost > profile.points ? 'Not enough points' : 'Redeem') %>
+          <%= reward.stock === 0 ? 'สินค้าหมด' : (reward.pointsCost > profile.points ? 'แต้มไม่เพียงพอ' : 'แลกของรางวัล') %>
         </button>
       </article>
     <% }); %>
   </div>
   <div id="voucherBox" class="voucher-box" hidden>
-    <h3>Your redemption code</h3>
+    <h3>รหัสแลกรับของรางวัลของคุณ</h3>
     <pre id="voucherCode"></pre>
-    <p class="hint">Show this code at the shop counter. It expires after 72 hours (REWARD_CODE_TTL).</p>
+    <p class="hint">แสดงรหัสนี้ที่เคาน์เตอร์ของร้านค้า รหัสมีอายุ 72 ชั่วโมง (REWARD_CODE_TTL)</p>
   </div>
 </section>
 

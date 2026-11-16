@@ -54,10 +54,10 @@
         try {
           if (mode === 'edit') {
             await window.App.apiFetch('PUT', ENDPOINTS[entity] + '/' + encodeURIComponent(id), payload);
-            window.App.showMessage('Updated successfully.');
+            window.App.showMessage('บันทึกการเปลี่ยนแปลงเรียบร้อยแล้ว');
           } else {
             await window.App.apiFetch('POST', ENDPOINTS[entity], payload);
-            window.App.showMessage('Created successfully.');
+            window.App.showMessage('สร้างข้อมูลเรียบร้อยแล้ว');
           }
           setTimeout(function () {
             window.location.reload();
@@ -85,17 +85,17 @@
         form.dataset.mode = 'edit';
         form.dataset.id = button.dataset.id;
         const submit = form.querySelector('button[type="submit"]');
-        if (submit) submit.textContent = 'Save changes';
+        if (submit) submit.textContent = 'บันทึกการเปลี่ยนแปลง';
         form.scrollIntoView({ behavior: 'smooth', block: 'center' });
       });
     });
 
     document.querySelectorAll('.delete-shop-btn').forEach(function (button) {
       button.addEventListener('click', async function () {
-        if (!window.confirm('Soft delete this shop? It has to have no active borrows.')) return;
+        if (!window.confirm('ยืนยันการลบร้านค้านี้หรือไม่? ร้านค้าต้องไม่มีหนังสือที่กำลังถูกยืมอยู่')) return;
         try {
           await window.App.apiFetch('DELETE', '/api/admin/shops/' + encodeURIComponent(button.dataset.id));
-          window.App.showMessage('Shop deleted.');
+          window.App.showMessage('ลบร้านค้าเรียบร้อยแล้ว');
           setTimeout(function () {
             window.location.reload();
           }, 900);

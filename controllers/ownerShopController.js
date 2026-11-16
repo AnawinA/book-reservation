@@ -123,9 +123,9 @@ const renderDashboard = asyncHandler(async (req, res) => {
   const shopId = req.user.shopId;
   if (shopId === null || shopId === undefined) {
     return res.status(403).render('pages/error', {
-      title: 'Forbidden',
+      title: 'ไม่มีสิทธิ์เข้าถึง',
       statusCode: 403,
-      message: 'Your account is not linked to a shop.',
+      message: 'บัญชีของคุณไม่ได้ผูกกับร้านค้าใดๆ',
       pageScript: null,
       currentUser: res.locals.currentUser
     });
@@ -134,9 +134,9 @@ const renderDashboard = asyncHandler(async (req, res) => {
   const shop = await shopModel.findById(shopId);
   if (!shop) {
     return res.status(403).render('pages/error', {
-      title: 'Forbidden',
+      title: 'ไม่มีสิทธิ์เข้าถึง',
       statusCode: 403,
-      message: 'Your shop could not be found.',
+      message: 'ไม่พบข้อมูลร้านค้าของคุณ',
       pageScript: null,
       currentUser: res.locals.currentUser
     });
@@ -150,7 +150,7 @@ const renderDashboard = asyncHandler(async (req, res) => {
   ]);
 
   return res.render('pages/shop', {
-    title: `${shop.name} Dashboard`,
+    title: `แดชบอร์ดร้านค้า ${shop.name}`,
     shop,
     inventory: inventory.items,
     campaigns,

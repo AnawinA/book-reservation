@@ -22,7 +22,7 @@
         try {
           const result = await window.App.apiFetch('POST', base + '/donations', window.App.formToJSON(donationForm));
           window.App.showMessage(
-            'Donation recorded (' + result.item.barcode + '), ' + result.pointsAwarded + ' points awarded.'
+            'บันทึกการบริจาคเรียบร้อย (' + result.item.barcode + '), ได้รับ ' + result.pointsAwarded + ' แต้ม'
           );
           donationForm.reset();
           reloadSoon();
@@ -38,7 +38,7 @@
         event.preventDefault();
         try {
           const result = await window.App.apiFetch('POST', base + '/borrows', window.App.formToJSON(borrowForm));
-          window.App.showMessage('Book ' + result.item.barcode + ' lent until ' + result.item.dueDate + '.');
+          window.App.showMessage('ยืมหนังสือ ' + result.item.barcode + ' สำเร็จ กำหนดส่งคืน ' + result.item.dueDate);
           borrowForm.reset();
           reloadSoon();
         } catch (error) {
@@ -54,7 +54,7 @@
         try {
           const result = await window.App.apiFetch('POST', base + '/returns', window.App.formToJSON(returnForm));
           window.App.showMessage(
-            'Book returned' + (result.wasOverdue ? ' (it was overdue).' : '.')
+            'คืนหนังสือสำเร็จ' + (result.wasOverdue ? ' (รายการนี้เกินกำหนดส่ง)' : '')
           );
           returnForm.reset();
           reloadSoon();
@@ -75,7 +75,7 @@
             '/api/book-items/' + encodeURIComponent(String(data.barcode).toUpperCase()) + '/status',
             { status: data.status }
           );
-          window.App.showMessage('Status of ' + item.barcode + ' is now ' + item.status + '.');
+          window.App.showMessage('สถานะของ ' + item.barcode + ' เปลี่ยนเป็น ' + item.status + ' แล้ว');
           statusForm.reset();
           reloadSoon();
         } catch (error) {
@@ -91,7 +91,7 @@
         try {
           const result = await window.App.apiFetch('PATCH', base + '/rewards/claim', window.App.formToJSON(claimForm));
           window.App.showMessage(
-            'Valid voucher for ' + result.customer.username + ' (' + result.reward.title + ').'
+            'รหัสแลกของรางวัลถูกต้องสำหรับ ' + result.customer.username + ' (' + result.reward.title + ')'
           );
         } catch (error) {
           window.App.showMessage(window.App.formatError(error), 'error');
