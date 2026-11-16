@@ -79,3 +79,59 @@ curl http://localhost:3000/api/health
 Expected: `{"success":true,"data":{"db":"up",...}}`
 
 **A different port than 3000 in `docker compose ps`** — a `PORT` variable is set in your shell. Check with `echo $PORT`; then re-run step 2.
+
+---
+
+## Check the database
+
+The credentials live in the container environment, so the commands below need no password from you.
+
+**Is the app connected to MySQL?**
+
+```bash
+curl http://localhost:3000/api/health
+```
+
+`"db":"up"` means the app is talking to MySQL.
+
+**Run any SQL** — pipe it in, so no nested quotes are needed (this works in PowerShell, CMD and Git Bash alike):
+
+```bash
+echo "SHOW TABLES;" | docker compose exec -T db sh -c 'mysql -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE"'
+```
+
+```bash
+echo "SELECT COUNT(*) FROM users;" | docker compose exec -T db sh -c 'mysql -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE"'
+```
+
+**Interactive MySQL prompt** — open a shell in the container, then start `mysql` inside it (again no quoting to get wrong):
+
+```bash
+docker compose exec db bash
+```
+
+```bash
+mysql -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE"
+```
+
+Now type `SHOW TABLES;`, `SELECT id,username,role,points FROM users;`, then `exit` twice.
+
+> **PowerShell users:** do not put `-e "…"` inside the `sh -c '…'` string. PowerShell strips those inner double quotes, `mysql` receives `-e SHOW TABLES;` and answers `ERROR 1064 (42000) … near ''`. The `echo "…" |` form above avoids the problem completely.
+
+**GUI client** (DBeaver, TablePlus, HeidiSQL, MySQL Workbench): host `127.0.0.1`, port `3307`, database `book_borrowing`, user `bbs_user`, password = the `DB_PASSWORD` value in `.env`.
+
+**Re-seed an empty database:**
+
+```bash
+docker compose exec app node scripts/seed.js
+```
+
+It prints `Seed skipped: users table already has data` when the data is already there, so it is safe to run.
+
+```powershell
+echo "SHOW TABLES;" | docker compose exec -T db sh -c 'mysql -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE"'
+```
+
+```powershell
+echo "SELECT COUNT(*) FROM users;" | docker compose exec -T db sh -c 'mysql -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE"'
+```
