@@ -1188,11 +1188,41 @@ input[type="search"] { appearance: none; }
   color: var(--text-soft);
   text-decoration: none;
   transition: background 0.15s ease, color 0.15s ease;
+  cursor: pointer;
+  user-select: none;
 }
 
 .subnav a:hover {
   background: var(--surface-2);
   color: var(--text);
+}
+
+.subnav a.is-active,
+.subnav a[aria-selected="true"],
+.subnav [role="tab"].is-active,
+.subnav [role="tab"][aria-selected="true"] {
+  background: var(--primary);
+  color: var(--primary-contrast);
+}
+
+.tab-panel {
+  animation: tabFadeIn 0.18s ease;
+}
+
+.tab-panel[hidden],
+[hidden] {
+  display: none !important;
+}
+
+@keyframes tabFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ---------------------------------------------------------- home content */

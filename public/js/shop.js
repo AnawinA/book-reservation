@@ -12,7 +12,76 @@
     }, 1200);
   }
 
+  function initTabs() {
+    const tabs = document.querySelectorAll('.subnav a[role="tab"], .subnav a[href^="#"]');
+    const panels = document.querySelectorAll('.tab-panel');
+
+    if (!tabs.length || !panels.length) return;
+
+    function activateTab(targetId, updateHash) {
+      let found = false;
+
+      tabs.forEach(function (tab) {
+        const href = tab.getAttribute('href') || '';
+        const id = href.replace(/^#/, '');
+        const match = id === targetId;
+        if (match) found = true;
+        tab.classList.toggle('is-active', match);
+        tab.setAttribute('aria-selected', match ? 'true' : 'false');
+      });
+
+      if (!found) {
+        targetId = 'inventory';
+        tabs.forEach(function (tab) {
+          const href = tab.getAttribute('href') || '';
+          const match = href.replace(/^#/, '') === 'inventory';
+          tab.classList.toggle('is-active', match);
+          tab.setAttribute('aria-selected', match ? 'true' : 'false');
+        });
+      }
+
+      panels.forEach(function (panel) {
+        if (panel.id === targetId) {
+          panel.removeAttribute('hidden');
+          panel.classList.add('is-active');
+        } else {
+          panel.setAttribute('hidden', '');
+          panel.classList.remove('is-active');
+        }
+      });
+
+      if (updateHash && window.history && window.history.replaceState) {
+        window.history.replaceState(null, '', '#' + targetId);
+      }
+    }
+
+    tabs.forEach(function (tab) {
+      tab.addEventListener('click', function (event) {
+        event.preventDefault();
+        const href = tab.getAttribute('href') || '';
+        const id = href.replace(/^#/, '');
+        activateTab(id, true);
+      });
+    });
+
+    const initialHash = (window.location.hash || '').replace(/^#/, '');
+    if (initialHash && document.getElementById(initialHash)) {
+      activateTab(initialHash, false);
+    } else {
+      activateTab('inventory', false);
+    }
+
+    window.addEventListener('hashchange', function () {
+      const hash = (window.location.hash || '').replace(/^#/, '');
+      if (hash && document.getElementById(hash)) {
+        activateTab(hash, false);
+      }
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
+    initTabs();
+
     const base = '/api/shops/' + shopId();
 
     const donationForm = document.getElementById('donationForm');
