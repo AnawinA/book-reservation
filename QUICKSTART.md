@@ -2,12 +2,6 @@
 
 Five steps, no configuration needed. Docker Desktop must be running.
 
-## 1. Open a terminal in this folder
-
-```bash
-cd "D:\User D\Codes\WEBSITES\IT_KMITL_PROJECT\book reservation"
-```
-
 (Git Bash, PowerShell and CMD all work — see the note under step 3 for PowerShell.)
 
 ## 2. Start the stack on port 3000
