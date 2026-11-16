@@ -21,14 +21,57 @@
   </div>
 </header>
 
-<nav class="subnav" aria-label="ส่วนจัดการร้านค้า">
-  <a href="#operations">เคาน์เตอร์</a>
-  <a href="#inventory">คลังหนังสือ</a>
-  <a href="#campaigns">แคมเปญ</a>
-  <a href="#rewards">ของรางวัล</a>
+<nav class="subnav" role="tablist" aria-label="ส่วนจัดการร้านค้า">
+  <a href="#inventory" role="tab" id="tab-inventory" aria-controls="inventory" aria-selected="true" class="is-active">คลังหนังสือ</a>
+  <a href="#operations" role="tab" id="tab-operations" aria-controls="operations" aria-selected="false">เคาน์เตอร์</a>
+  <a href="#campaigns" role="tab" id="tab-campaigns" aria-controls="campaigns" aria-selected="false">แคมเปญ</a>
+  <a href="#rewards" role="tab" id="tab-rewards" aria-controls="rewards" aria-selected="false">ของรางวัล</a>
 </nav>
 
-<section class="grid-2" id="operations">
+<!-- Tab 1: คลังหนังสือ (First tab, active by default) -->
+<section class="card tab-panel is-active" id="inventory" role="tabpanel" aria-labelledby="tab-inventory">
+  <div class="card-header">
+    <h2>คลังหนังสือ <span class="sr-only">Inventory</span></h2>
+    <span class="count-chip"><%= inventory.length %> เล่ม</span>
+  </div>
+  <%
+    var shopStatusMap = {
+      'AVAILABLE': 'พร้อมยืม',
+      'BORROWED': 'กำลังยืม',
+      'DAMAGED': 'ชำรุด',
+      'LOST': 'สูญหาย'
+    };
+  %>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">บาร์โค้ด</th>
+          <th scope="col">ชื่อเรื่อง</th>
+          <th scope="col">ผู้แต่ง</th>
+          <th scope="col">สถานะ</th>
+          <th scope="col">ผู้ยืม</th>
+          <th scope="col">กำหนดส่งคืน</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% inventory.forEach(function (item) { %>
+          <tr>
+            <td data-label="บาร์โค้ด"><%= item.barcode %></td>
+            <td data-label="ชื่อเรื่อง"><strong><%= item.title %></strong></td>
+            <td data-label="ผู้แต่ง"><%= item.author %></td>
+            <td data-label="สถานะ"><span class="badge badge-<%= item.status.toLowerCase() %>"><%= shopStatusMap[item.status] || item.status %></span></td>
+            <td data-label="ผู้ยืม"><%= item.borrowerUsername || '-' %></td>
+            <td data-label="กำหนดส่งคืน"><%= formatDate(item.dueDate) %></td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- Tab 2: เคาน์เตอร์ -->
+<section class="grid-2 tab-panel" id="operations" role="tabpanel" aria-labelledby="tab-operations" hidden>
   <div class="card">
     <div class="card-header"><h2>รับบริจาคหนังสือ</h2></div>
     <form id="donationForm" class="stack">
@@ -121,7 +164,8 @@
   </div>
 </section>
 
-<section class="card" id="campaigns">
+<!-- Tab 3: แคมเปญ -->
+<section class="card tab-panel" id="campaigns" role="tabpanel" aria-labelledby="tab-campaigns" hidden>
   <div class="section-title">แคมเปญ</div>
   <% if (campaigns.length === 0) { %>
     <p class="muted">ยังไม่มีแคมเปญสำหรับร้านค้านี้</p>
@@ -143,7 +187,8 @@
   <% } %>
 </section>
 
-<section class="card" id="rewards">
+<!-- Tab 4: ของรางวัล -->
+<section class="card tab-panel" id="rewards" role="tabpanel" aria-labelledby="tab-rewards" hidden>
   <div class="card-header">
     <h2>ของรางวัล</h2>
     <span class="count-chip"><%= rewards.length %> รายการ</span>
@@ -168,47 +213,6 @@
       </table>
     </div>
   <% } %>
-</section>
-
-<section class="card" id="inventory">
-  <div class="card-header">
-    <h2>คลังหนังสือ <span class="sr-only">Inventory</span></h2>
-    <span class="count-chip"><%= inventory.length %> เล่ม</span>
-  </div>
-  <%
-    var shopStatusMap = {
-      'AVAILABLE': 'พร้อมยืม',
-      'BORROWED': 'กำลังยืม',
-      'DAMAGED': 'ชำรุด',
-      'LOST': 'สูญหาย'
-    };
-  %>
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th scope="col">บาร์โค้ด</th>
-          <th scope="col">ชื่อเรื่อง</th>
-          <th scope="col">ผู้แต่ง</th>
-          <th scope="col">สถานะ</th>
-          <th scope="col">ผู้ยืม</th>
-          <th scope="col">กำหนดส่งคืน</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% inventory.forEach(function (item) { %>
-          <tr>
-            <td data-label="บาร์โค้ด"><%= item.barcode %></td>
-            <td data-label="ชื่อเรื่อง"><strong><%= item.title %></strong></td>
-            <td data-label="ผู้แต่ง"><%= item.author %></td>
-            <td data-label="สถานะ"><span class="badge badge-<%= item.status.toLowerCase() %>"><%= shopStatusMap[item.status] || item.status %></span></td>
-            <td data-label="ผู้ยืม"><%= item.borrowerUsername || '-' %></td>
-            <td data-label="กำหนดส่งคืน"><%= formatDate(item.dueDate) %></td>
-          </tr>
-        <% }); %>
-      </tbody>
-    </table>
-  </div>
 </section>
 
 <%- include('../partials/footer') %>
