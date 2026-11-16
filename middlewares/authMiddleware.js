@@ -57,9 +57,9 @@ function authorizePage(...roles) {
     if (!req.user) return res.redirect(302, '/?auth=required');
     if (!roles.includes(req.user.role)) {
       return res.status(403).render('pages/error', {
-        title: 'Forbidden',
+        title: 'ไม่มีสิทธิ์เข้าถึง',
         statusCode: 403,
-        message: 'You do not have access to this page.',
+        message: 'คุณไม่มีสิทธิ์เข้าถึงหน้านี้',
         pageScript: null,
         currentUser: res.locals.currentUser || null
       });

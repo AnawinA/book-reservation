@@ -1,30 +1,30 @@
 <!doctype html>
-<html lang="en">
+<html lang="th">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
-  <title><%= title %> | Book Borrowing</title>
+  <title><%= title %> | ระบบยืมหนังสือ</title>
   <link rel="stylesheet" href="/css/styles.css">
   <script src="/js/theme.js"></script>
 </head>
 <body>
   <% var path = typeof currentPath === 'string' ? currentPath : ''; %>
-  <a class="skip-link" href="#main">Skip to content</a>
-  <nav class="site-nav" aria-label="Main navigation">
+  <a class="skip-link" href="#main">ข้ามไปยังเนื้อหา</a>
+  <nav class="site-nav" aria-label="เมนูหลัก">
     <a class="brand" href="/">
       <span class="brand-mark" aria-hidden="true">B</span>
-      <span class="brand-text">Book Borrowing</span>
+      <span class="brand-text">ระบบยืมหนังสือ</span>
     </a>
     <div class="nav-links">
-      <a class="nav-link" href="/" aria-current="<%= path === '/' ? 'page' : 'false' %>">Catalog</a>
+      <a class="nav-link" href="/" aria-current="<%= path === '/' ? 'page' : 'false' %>">รายการหนังสือ</a>
 
       <% if (currentUser && currentUser.role === 'Customer') { %>
-        <a class="nav-link" href="/customer/dashboard" aria-current="<%= path === '/customer/dashboard' ? 'page' : 'false' %>">My books</a>
+        <a class="nav-link" href="/customer/dashboard" aria-current="<%= path === '/customer/dashboard' ? 'page' : 'false' %>">หนังสือของฉัน</a>
       <% } else if (currentUser && currentUser.role === 'OwnerShop') { %>
-        <a class="nav-link" href="/shop/dashboard" aria-current="<%= path === '/shop/dashboard' ? 'page' : 'false' %>">Shop counter</a>
+        <a class="nav-link" href="/shop/dashboard" aria-current="<%= path === '/shop/dashboard' ? 'page' : 'false' %>">เคาน์เตอร์ร้านค้า</a>
       <% } else if (currentUser && currentUser.role === 'Admin') { %>
-        <a class="nav-link" href="/admin/dashboard" aria-current="<%= path === '/admin/dashboard' ? 'page' : 'false' %>">Administration</a>
+        <a class="nav-link" href="/admin/dashboard" aria-current="<%= path === '/admin/dashboard' ? 'page' : 'false' %>">การจัดการระบบ</a>
       <% } %>
 
       <% if (currentUser) { %>
@@ -34,7 +34,7 @@
         </span>
       <% } %>
 
-      <button type="button" id="themeToggle" class="theme-toggle" aria-pressed="false" aria-label="Switch to dark mode" title="Switch to dark mode">
+      <button type="button" id="themeToggle" class="theme-toggle" aria-pressed="false" aria-label="สลับเป็นโหมดมืด" title="สลับเป็นโหมดมืด">
         <svg class="icon icon-moon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
           <path d="M21 12.8A8.5 8.5 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" />
         </svg>
@@ -45,9 +45,9 @@
       </button>
 
       <% if (currentUser) { %>
-        <button type="button" id="logoutBtn" class="btn btn-ghost btn-sm">Log out</button>
+        <button type="button" id="logoutBtn" class="btn btn-ghost btn-sm">ออกจากระบบ</button>
       <% } else { %>
-        <a class="btn btn-sm" href="/#loginForm">Log in</a>
+        <a class="btn btn-sm" href="/#loginForm">เข้าสู่ระบบ</a>
       <% } %>
     </div>
   </nav>

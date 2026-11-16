@@ -205,6 +205,7 @@ describe('server-rendered dashboards', () => {
     expect(res.headers['content-type']).toMatch(/text\/html/);
     expect(res.text).toContain('alice');
     expect(res.text).toContain('points available');
+    expect(res.text).toContain('แต้มที่ใช้ได้');
   });
 
   test('[positive] the shop dashboard renders the shop inventory', async () => {
@@ -215,6 +216,7 @@ describe('server-rendered dashboards', () => {
     expect(res.status).toBe(200);
     expect(res.text).toContain('KMITL Library Corner');
     expect(res.text).toContain('Inventory');
+    expect(res.text).toContain('คลังหนังสือ');
   });
 
   test('[positive] the admin dashboard renders the KPI tiles and overdue report', async () => {
@@ -224,7 +226,9 @@ describe('server-rendered dashboards', () => {
 
     expect(res.status).toBe(200);
     expect(res.text).toContain('Administration');
+    expect(res.text).toContain('การจัดการระบบ');
     expect(res.text).toContain('Overdue report');
+    expect(res.text).toContain('รายงานหนังสือเกินกำหนดส่ง');
   });
 
   test('[positive] a customer donations call returns the count meta', async () => {

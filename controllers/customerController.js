@@ -67,7 +67,7 @@ const renderDashboard = asyncHandler(async (req, res) => {
   ]);
 
   return res.render('pages/customer', {
-    title: 'My Dashboard',
+    title: 'แดชบอร์ดของฉัน',
     profile,
     borrows,
     donations,

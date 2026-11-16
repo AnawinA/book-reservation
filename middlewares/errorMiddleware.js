@@ -68,7 +68,7 @@ function errorHandler(err, req, res, next) {
   }
 
   return res.status(statusCode).render('pages/error', {
-    title: 'Error',
+    title: 'เกิดข้อผิดพลาด',
     statusCode,
     message,
     pageScript: null,

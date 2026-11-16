@@ -3,6 +3,7 @@
   <p class="error-code"><%= statusCode %></p>
   <h1><%= title %></h1>
   <p class="muted"><%= message %></p>
-  <a class="btn" href="/">Back to the catalog</a>
+  <a class="btn" href="/">กลับสู่หน้ารายการหนังสือ</a>
+  <% if (statusCode === 403) { %><span class="sr-only">You do not have access to this page.</span><% } %>
 </section>
 <%- include('../partials/footer') %>
