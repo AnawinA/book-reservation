@@ -1,0 +1,33 @@
+  </main>
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <span class="brand-mark" aria-hidden="true">B</span>
+        <div>
+          <strong>Book Borrowing System</strong>
+          <p>Donate books, earn points, redeem rewards across the shop network.</p>
+        </div>
+      </div>
+      <nav class="footer-links" aria-label="Footer navigation">
+        <a href="/">Catalog</a>
+        <% if (currentUser && currentUser.role === 'Customer') { %>
+          <a href="/customer/dashboard">My books</a>
+        <% } else if (currentUser && currentUser.role === 'OwnerShop') { %>
+          <a href="/shop/dashboard">Shop counter</a>
+        <% } else if (currentUser && currentUser.role === 'Admin') { %>
+          <a href="/admin/dashboard">Administration</a>
+        <% } else { %>
+          <a href="/#loginForm">Log in</a>
+        <% } %>
+      </nav>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; <%= new Date().getFullYear() %> Book Borrowing System &middot; KMITL Server-Side Web Development</p>
+    </div>
+  </footer>
+  <script src="/js/api.js"></script>
+  <% if (typeof pageScript !== 'undefined' && pageScript) { %>
+    <script src="/js/<%= pageScript %>.js"></script>
+  <% } %>
+</body>
+</html>

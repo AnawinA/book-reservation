@@ -1,0 +1,300 @@
+<%- include('../partials/header') %>
+
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="/">Catalog</a>
+  <span aria-hidden="true">/</span>
+  <span aria-current="page">Administration</span>
+</nav>
+
+<header class="page-head">
+  <div>
+    <p class="eyebrow">Admin</p>
+    <h1>Administration</h1>
+    <p class="muted">Manage the shop network, catalog, campaigns, rewards and overdue loans.</p>
+  </div>
+  <div class="page-head-meta">
+    <span class="badge"><%= stats.shopCount %> shops</span>
+    <span class="badge"><%= stats.bookCount %> titles</span>
+    <span class="badge badge-damaged"><%= stats.overdueCount %> overdue</span>
+  </div>
+</header>
+
+<nav class="subnav" aria-label="Admin sections">
+  <a href="#shops">Shops</a>
+  <a href="#books">Books</a>
+  <a href="#campaigns">Campaigns</a>
+  <a href="#rewards">Rewards</a>
+  <a href="#overdue">Overdue</a>
+</nav>
+
+<section class="kpi-grid">
+  <div class="kpi"><span class="kpi-value"><%= stats.shopCount %></span><span class="kpi-label">Shops</span></div>
+  <div class="kpi"><span class="kpi-value"><%= stats.bookCount %></span><span class="kpi-label">Titles</span></div>
+  <div class="kpi"><span class="kpi-value"><%= stats.activeCampaigns %></span><span class="kpi-label">Active campaigns</span></div>
+  <div class="kpi"><span class="kpi-value"><%= stats.overdueCount %></span><span class="kpi-label">Overdue loans</span></div>
+  <div class="kpi"><span class="kpi-value"><%= stats.totalRewardStock %></span><span class="kpi-label">Reward stock</span></div>
+</section>
+
+<section class="card" id="shops">
+  <div class="card-header">
+    <h2>Shops</h2>
+    <span class="count-chip"><%= shops.length %> records</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">ID</th>
+          <th scope="col">Name</th>
+          <th scope="col">Location</th>
+          <th scope="col">Items</th>
+          <th scope="col">Available</th>
+          <th scope="col">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% shops.forEach(function (shop) { %>
+          <tr>
+            <td data-label="ID"><%= shop.id %></td>
+            <td data-label="Name"><strong><%= shop.name %></strong></td>
+            <td data-label="Location"><%= shop.location %></td>
+            <td data-label="Items"><%= shop.totalItems %></td>
+            <td data-label="Available"><%= shop.availableItems %></td>
+            <td data-label="Actions">
+              <button type="button" class="btn btn-ghost btn-sm edit-btn" data-entity="shop" data-id="<%= shop.id %>" data-json="<%= JSON.stringify({ name: shop.name, location: shop.location }) %>">Edit</button>
+              <button type="button" class="btn btn-danger btn-sm delete-shop-btn" data-id="<%= shop.id %>">Delete</button>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+
+  <form id="shopForm" class="inline-form" data-mode="create">
+    <div class="field">
+      <label for="shopName">Name</label>
+      <input id="shopName" name="name" required maxlength="100">
+    </div>
+    <div class="field">
+      <label for="shopLocation">Location</label>
+      <input id="shopLocation" name="location" required maxlength="255">
+    </div>
+    <button class="btn" type="submit">Create shop</button>
+  </form>
+</section>
+
+<section class="card" id="books">
+  <div class="card-header">
+    <h2>Book collections</h2>
+    <span class="count-chip"><%= books.length %> shown</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">ID</th>
+          <th scope="col">ISBN</th>
+          <th scope="col">Title</th>
+          <th scope="col">Author</th>
+          <th scope="col">Category</th>
+          <th scope="col">Copies</th>
+          <th scope="col">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% books.forEach(function (book) { %>
+          <tr>
+            <td data-label="ID"><%= book.id %></td>
+            <td data-label="ISBN"><%= book.isbn %></td>
+            <td data-label="Title"><strong><%= book.title %></strong></td>
+            <td data-label="Author"><%= book.author %></td>
+            <td data-label="Category"><span class="badge"><%= book.category %></span></td>
+            <td data-label="Copies"><%= book.availableCopies %> / <%= book.totalCopies %></td>
+            <td data-label="Actions">
+              <button type="button" class="btn btn-ghost btn-sm edit-btn" data-entity="book" data-id="<%= book.id %>" data-json="<%= JSON.stringify({ isbn: book.isbn, title: book.title, author: book.author, category: book.category }) %>">Edit</button>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+
+  <form id="bookForm" class="inline-form" data-mode="create">
+    <div class="field">
+      <label for="bookIsbn">ISBN</label>
+      <input id="bookIsbn" name="isbn" required placeholder="9780132350884">
+    </div>
+    <div class="field">
+      <label for="bookTitle">Title</label>
+      <input id="bookTitle" name="title" required maxlength="255">
+    </div>
+    <div class="field">
+      <label for="bookAuthor">Author</label>
+      <input id="bookAuthor" name="author" required maxlength="255">
+    </div>
+    <div class="field">
+      <label for="bookCategory">Category</label>
+      <input id="bookCategory" name="category" required maxlength="50">
+    </div>
+    <button class="btn" type="submit">Create book</button>
+  </form>
+</section>
+
+<section class="card" id="campaigns">
+  <div class="card-header">
+    <h2>Campaigns</h2>
+    <span class="count-chip"><%= campaigns.length %> records</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">ID</th>
+          <th scope="col">Title</th>
+          <th scope="col">Bonus</th>
+          <th scope="col">Shop</th>
+          <th scope="col">Start</th>
+          <th scope="col">End</th>
+          <th scope="col">Active</th>
+          <th scope="col">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% campaigns.forEach(function (campaign) { %>
+          <tr>
+            <td data-label="ID"><%= campaign.id %></td>
+            <td data-label="Title"><strong><%= campaign.title %></strong></td>
+            <td data-label="Bonus"><span class="badge badge-bonus">+<%= campaign.bonusPoints %></span></td>
+            <td data-label="Shop"><%= campaign.shopName %></td>
+            <td data-label="Start"><%= formatDate(campaign.startAt) %></td>
+            <td data-label="End"><%= formatDate(campaign.endAt) %></td>
+            <td data-label="Active"><span class="badge <%= campaign.isActive ? 'badge-available' : 'badge-lost' %>"><%= campaign.isActive ? 'YES' : 'NO' %></span></td>
+            <td data-label="Actions">
+              <button type="button" class="btn btn-ghost btn-sm edit-btn" data-entity="campaign" data-id="<%= campaign.id %>" data-json="<%= JSON.stringify({ title: campaign.title, bonusPoints: campaign.bonusPoints, shopId: campaign.shopId, startAt: campaign.startAt, endAt: campaign.endAt }) %>">Edit</button>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+
+  <form id="campaignForm" class="inline-form" data-mode="create">
+    <div class="field">
+      <label for="campaignTitle">Title</label>
+      <input id="campaignTitle" name="title" required maxlength="150">
+    </div>
+    <div class="field">
+      <label for="campaignBonus">Bonus points</label>
+      <input id="campaignBonus" name="bonusPoints" type="number" min="0" max="1000" value="0" data-numeric="true">
+    </div>
+    <div class="field">
+      <label for="campaignShop">Shop ID</label>
+      <input id="campaignShop" name="shopId" type="number" min="1" required data-numeric="true">
+    </div>
+    <div class="field">
+      <label for="campaignStart">Start</label>
+      <input id="campaignStart" name="startAt" type="datetime-local" required>
+    </div>
+    <div class="field">
+      <label for="campaignEnd">End</label>
+      <input id="campaignEnd" name="endAt" type="datetime-local" required>
+    </div>
+    <button class="btn" type="submit">Create campaign</button>
+  </form>
+</section>
+
+<section class="card" id="rewards">
+  <div class="card-header">
+    <h2>Rewards</h2>
+    <span class="count-chip"><%= rewards.length %> records</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">ID</th>
+          <th scope="col">Title</th>
+          <th scope="col">Cost</th>
+          <th scope="col">Stock</th>
+          <th scope="col">Shop</th>
+          <th scope="col">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% rewards.forEach(function (reward) { %>
+          <tr>
+            <td data-label="ID"><%= reward.id %></td>
+            <td data-label="Title"><strong><%= reward.title %></strong></td>
+            <td data-label="Cost"><%= reward.pointsCost %> pts</td>
+            <td data-label="Stock"><%= reward.stock %></td>
+            <td data-label="Shop"><%= reward.shopName %></td>
+            <td data-label="Actions">
+              <button type="button" class="btn btn-ghost btn-sm edit-btn" data-entity="reward" data-id="<%= reward.id %>" data-json="<%= JSON.stringify({ title: reward.title, pointsCost: reward.pointsCost, stock: reward.stock, shopId: reward.shopId }) %>">Edit</button>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+
+  <form id="rewardForm" class="inline-form" data-mode="create">
+    <div class="field">
+      <label for="rewardTitle">Title</label>
+      <input id="rewardTitle" name="title" required maxlength="150">
+    </div>
+    <div class="field">
+      <label for="rewardCost">Points cost</label>
+      <input id="rewardCost" name="pointsCost" type="number" min="1" max="100000" required data-numeric="true">
+    </div>
+    <div class="field">
+      <label for="rewardStock">Stock</label>
+      <input id="rewardStock" name="stock" type="number" min="0" max="100000" value="0" data-numeric="true">
+    </div>
+    <div class="field">
+      <label for="rewardShop">Shop ID</label>
+      <input id="rewardShop" name="shopId" type="number" min="1" required data-numeric="true">
+    </div>
+    <button class="btn" type="submit">Create reward</button>
+  </form>
+</section>
+
+<section class="card" id="overdue">
+  <div class="card-header">
+    <h2>Overdue report</h2>
+    <span class="count-chip"><%= overdue.length %> loan<%= overdue.length === 1 ? '' : 's' %></span>
+  </div>
+  <% if (overdue.length === 0) { %>
+    <p class="muted">No overdue loans. Everything is on schedule.</p>
+  <% } else { %>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Barcode</th>
+            <th scope="col">Title</th>
+            <th scope="col">Borrower</th>
+            <th scope="col">Phone</th>
+            <th scope="col">Shop</th>
+            <th scope="col">Due date</th>
+            <th scope="col">Days overdue</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% overdue.forEach(function (row) { %>
+            <tr class="row-overdue">
+              <td data-label="Barcode"><%= row.barcode %></td>
+              <td data-label="Title"><strong><%= row.title %></strong></td>
+              <td data-label="Borrower"><%= row.username %></td>
+              <td data-label="Phone"><%= row.phone %></td>
+              <td data-label="Shop"><%= row.shopName %></td>
+              <td data-label="Due date"><%= formatDate(row.dueDate) %></td>
+              <td data-label="Days overdue"><span class="badge badge-overdue"><%= row.daysOverdue %></span></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</section>
+
+<%- include('../partials/footer') %>

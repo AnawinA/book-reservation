@@ -1,0 +1,206 @@
+<%- include('../partials/header') %>
+
+<input type="hidden" id="shopId" value="<%= shop.id %>">
+
+<nav class="breadcrumb" aria-label="Breadcrumb">
+  <a href="/">Catalog</a>
+  <span aria-hidden="true">/</span>
+  <span aria-current="page">Shop counter</span>
+</nav>
+
+<header class="page-head">
+  <div>
+    <p class="eyebrow">OwnerShop</p>
+    <h1><%= shop.name %></h1>
+    <p class="muted"><%= shop.location %></p>
+  </div>
+  <div class="page-head-meta">
+    <span class="badge">Shop #<%= shop.id %></span>
+    <span class="badge badge-available"><%= inventory.filter(function (i) { return i.status === 'AVAILABLE'; }).length %> available</span>
+    <span class="badge badge-borrowed"><%= inventory.filter(function (i) { return i.status === 'BORROWED'; }).length %> on loan</span>
+  </div>
+</header>
+
+<nav class="subnav" aria-label="Shop sections">
+  <a href="#operations">Counter</a>
+  <a href="#inventory">Inventory</a>
+  <a href="#campaigns">Campaigns</a>
+  <a href="#rewards">Rewards</a>
+</nav>
+
+<section class="grid-2" id="operations">
+  <div class="card">
+    <div class="card-header"><h2>Accept a donation</h2></div>
+    <form id="donationForm" class="stack">
+      <div class="field">
+        <label for="donorPhone">Donor phone</label>
+        <input id="donorPhone" name="donorPhone" pattern="0[0-9]{9}" placeholder="08xxxxxxxx" required>
+      </div>
+      <div class="field">
+        <label for="donationIsbn">ISBN</label>
+        <input id="donationIsbn" name="isbn" placeholder="9780132350884" required>
+      </div>
+      <div class="field">
+        <label for="donationBarcode">Barcode (optional)</label>
+        <input id="donationBarcode" name="barcode" placeholder="Auto-generated when empty">
+      </div>
+      <button class="btn" type="submit">Record donation</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h2>Lend a book</h2></div>
+    <form id="borrowForm" class="stack">
+      <div class="field">
+        <label for="borrowBarcode">Barcode</label>
+        <input id="borrowBarcode" name="barcode" placeholder="BK-0001" required>
+      </div>
+      <div class="field">
+        <label for="borrowerPhone">Borrower phone</label>
+        <input id="borrowerPhone" name="borrowerPhone" pattern="0[0-9]{9}" placeholder="08xxxxxxxx" required>
+      </div>
+      <div class="field">
+        <label for="durationDays">Duration (days)</label>
+        <input id="durationDays" name="durationDays" type="number" min="1" max="30" value="14">
+      </div>
+      <button class="btn" type="submit">Lend book</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h2>Return a book</h2></div>
+    <form id="returnForm" class="stack">
+      <div class="field">
+        <label for="returnBarcode">Barcode</label>
+        <input id="returnBarcode" name="barcode" placeholder="BK-0001" required>
+      </div>
+      <button class="btn" type="submit">Return book</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h2>Change item status</h2></div>
+    <form id="statusForm" class="stack">
+      <div class="field">
+        <label for="statusBarcode">Barcode</label>
+        <input id="statusBarcode" name="barcode" placeholder="BK-0001" required>
+      </div>
+      <div class="field">
+        <label for="statusValue">New status</label>
+        <select id="statusValue" name="status">
+          <option value="AVAILABLE">AVAILABLE</option>
+          <option value="DAMAGED">DAMAGED</option>
+          <option value="LOST">LOST</option>
+        </select>
+      </div>
+      <button class="btn" type="submit">Update status</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h2>Claim a reward voucher</h2></div>
+    <form id="claimForm" class="stack">
+      <div class="field">
+        <label for="claimCode">Redemption code</label>
+        <textarea id="claimCode" name="code" rows="4" placeholder="Paste the code the customer shows you" required maxlength="2048"></textarea>
+      </div>
+      <button class="btn" type="submit">Validate voucher</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h2>Look up an item</h2></div>
+    <form id="lookupForm" class="stack">
+      <div class="field">
+        <label for="lookupBarcode">Barcode</label>
+        <input id="lookupBarcode" name="barcode" placeholder="BK-0001" required>
+      </div>
+      <button class="btn btn-ghost" type="submit">Look up</button>
+    </form>
+    <pre id="lookupResult" class="lookup-result" hidden></pre>
+  </div>
+</section>
+
+<section class="card" id="campaigns">
+  <div class="section-title">Campaigns</div>
+  <% if (campaigns.length === 0) { %>
+    <p class="muted">No campaigns for this shop yet.</p>
+  <% } else { %>
+    <ul class="plain-list">
+      <% campaigns.forEach(function (campaign) { %>
+        <li class="list-item">
+          <span class="list-item-main">
+            <span class="list-item-title"><%= campaign.title %></span>
+            <span class="list-item-meta">Bonus on every donation</span>
+          </span>
+          <span>
+            <span class="badge badge-bonus">+<%= campaign.bonusPoints %> pts</span>
+            <span class="badge <%= campaign.isActive ? 'badge-available' : 'badge-lost' %>"><%= campaign.isActive ? 'ACTIVE' : 'INACTIVE' %></span>
+          </span>
+        </li>
+      <% }); %>
+    </ul>
+  <% } %>
+</section>
+
+<section class="card" id="rewards">
+  <div class="card-header">
+    <h2>Rewards</h2>
+    <span class="count-chip"><%= rewards.length %> reward<%= rewards.length === 1 ? '' : 's' %></span>
+  </div>
+  <% if (rewards.length === 0) { %>
+    <p class="muted">No rewards for this shop yet.</p>
+  <% } else { %>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th scope="col">Title</th><th scope="col">Cost</th><th scope="col">Stock</th></tr></thead>
+        <tbody>
+          <% rewards.forEach(function (reward) { %>
+            <tr>
+              <td data-label="Title"><strong><%= reward.title %></strong></td>
+              <td data-label="Cost"><%= reward.pointsCost %> pts</td>
+              <td data-label="Stock">
+                <span class="badge <%= reward.stock > 0 ? 'badge-available' : 'badge-damaged' %>"><%= reward.stock %> left</span>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</section>
+
+<section class="card" id="inventory">
+  <div class="card-header">
+    <h2>Inventory</h2>
+    <span class="count-chip"><%= inventory.length %> item<%= inventory.length === 1 ? '' : 's' %></span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Barcode</th>
+          <th scope="col">Title</th>
+          <th scope="col">Author</th>
+          <th scope="col">Status</th>
+          <th scope="col">Borrower</th>
+          <th scope="col">Due</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% inventory.forEach(function (item) { %>
+          <tr>
+            <td data-label="Barcode"><%= item.barcode %></td>
+            <td data-label="Title"><strong><%= item.title %></strong></td>
+            <td data-label="Author"><%= item.author %></td>
+            <td data-label="Status"><span class="badge badge-<%= item.status.toLowerCase() %>"><%= item.status %></span></td>
+            <td data-label="Borrower"><%= item.borrowerUsername || '-' %></td>
+            <td data-label="Due"><%= formatDate(item.dueDate) %></td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<%- include('../partials/footer') %>

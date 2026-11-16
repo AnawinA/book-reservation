@@ -1,0 +1,270 @@
+<%- include('../partials/header') %>
+
+<% if (authRequired) { %>
+  <div class="alert" role="alert">
+    <span aria-hidden="true">&#9432;</span>
+    <span>Please log in to open your dashboard.</span>
+  </div>
+<% } %>
+
+<section class="hero">
+  <div class="hero-copy">
+    <p class="eyebrow">KMITL library network</p>
+    <h1>Borrow a book. Earn points. Redeem rewards.</h1>
+    <p class="hero-lead">
+      Search the shared catalog, check live availability in every shop, and turn the books you donate into
+      points you can spend on coffee, tote bags and more.
+    </p>
+    <div class="hero-stats">
+      <div class="stat">
+        <span class="stat-value"><%= pagination.total %></span>
+        <span class="stat-label">Titles</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value"><%= shops.length %></span>
+        <span class="stat-label">Shops</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value"><%= campaigns.length %></span>
+        <span class="stat-label">Live campaigns</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value"><%= rewards.length %></span>
+        <span class="stat-label">Rewards</span>
+      </div>
+    </div>
+  </div>
+
+  <aside class="hero-aside" aria-label="Highlights">
+    <% if (campaigns.length > 0) { %>
+      <div class="spotlight">
+        <p class="spotlight-label">Running campaign</p>
+        <p class="spotlight-title"><%= campaigns[0].title %></p>
+        <p class="spotlight-meta"><%= campaigns[0].shopName %></p>
+        <span class="badge badge-bonus">+<%= campaigns[0].bonusPoints %> pts per donation</span>
+      </div>
+    <% } %>
+    <% var featuredReward = rewards.find(function (r) { return r.stock > 0; }); %>
+    <% if (featuredReward) { %>
+      <div class="spotlight">
+        <p class="spotlight-label">From the reward shelf</p>
+        <p class="spotlight-title"><%= featuredReward.title %></p>
+        <p class="spotlight-meta"><%= featuredReward.shopName %> &middot; <%= featuredReward.pointsCost %> pts</p>
+      </div>
+    <% } %>
+    <% if (!currentUser) { %>
+      <a class="btn" href="#loginForm">Log in to borrow</a>
+    <% } %>
+  </aside>
+</section>
+
+<section class="card" aria-labelledby="how-heading">
+  <div class="card-header">
+    <h2 id="how-heading">How it works</h2>
+    <span class="count-chip">Customers &amp; shops</span>
+  </div>
+  <div class="step-grid">
+    <article class="step">
+      <span class="step-number" aria-hidden="true">1</span>
+      <h3>Donate a book</h3>
+      <p>A shop scans your ISBN and your phone number. You earn base points plus any active campaign bonus.</p>
+    </article>
+    <article class="step">
+      <span class="step-number" aria-hidden="true">2</span>
+      <h3>Borrow what you like</h3>
+      <p>Take a copy home for the loan period. Your dashboard tracks every due date and flags overdue items.</p>
+    </article>
+    <article class="step">
+      <span class="step-number" aria-hidden="true">3</span>
+      <h3>Redeem rewards</h3>
+      <p>Spend points on shop rewards and show the redemption code at the counter to collect it.</p>
+    </article>
+  </div>
+</section>
+
+<section class="card" aria-labelledby="catalog-heading">
+  <div class="card-header">
+    <h2 id="catalog-heading">Catalog</h2>
+    <span class="count-chip"><%= pagination.total %> title<%= pagination.total === 1 ? '' : 's' %></span>
+  </div>
+
+  <form method="get" action="/" class="toolbar" role="search">
+    <div class="field">
+      <label for="q">Search</label>
+      <input type="search" id="q" name="q" value="<%= query.q %>" placeholder="Title, author or ISBN" maxlength="100">
+    </div>
+    <div class="field">
+      <label for="category">Category</label>
+      <select id="category" name="category">
+        <option value="">All categories</option>
+        <% categories.forEach(function (item) { %>
+          <option value="<%= item %>" <%= query.category === item ? 'selected' : '' %>><%= item %></option>
+        <% }); %>
+      </select>
+    </div>
+    <button class="btn" type="submit">Filter catalog</button>
+  </form>
+
+  <% if (books.length === 0) { %>
+    <p class="muted">No books match this filter yet. Try a different keyword or category.</p>
+  <% } else { %>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Title</th>
+            <th scope="col">Author</th>
+            <th scope="col">Category</th>
+            <th scope="col">ISBN</th>
+            <th scope="col">Availability</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% books.forEach(function (book) { %>
+            <tr>
+              <td data-label="Title"><strong><%= book.title %></strong></td>
+              <td data-label="Author"><%= book.author %></td>
+              <td data-label="Category"><span class="badge"><%= book.category %></span></td>
+              <td data-label="ISBN"><%= book.isbn %></td>
+              <td data-label="Availability">
+                <span class="badge <%= book.availableCopies > 0 ? 'badge-available' : 'badge-borrowed' %>">
+                  <%= book.availableCopies %> of <%= book.totalCopies %> available
+                </span>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+
+    <nav class="pagination" aria-label="Catalog pages">
+      <% if (pagination.page > 1) { %>
+        <a href="/?q=<%= encodeURIComponent(query.q) %>&amp;category=<%= encodeURIComponent(query.category) %>&amp;page=<%= pagination.page - 1 %>">&larr; Previous</a>
+      <% } else { %>
+        <span></span>
+      <% } %>
+      <span>Page <%= pagination.page %> of <%= pagination.totalPages %></span>
+      <% if (pagination.page < pagination.totalPages) { %>
+        <a href="/?q=<%= encodeURIComponent(query.q) %>&amp;category=<%= encodeURIComponent(query.category) %>&amp;page=<%= pagination.page + 1 %>">Next &rarr;</a>
+      <% } else { %>
+        <span></span>
+      <% } %>
+    </nav>
+  <% } %>
+</section>
+
+<section class="grid-2">
+  <div class="card">
+    <div class="card-header">
+      <h2>Active campaigns</h2>
+      <span class="count-chip"><%= campaigns.length %> running</span>
+    </div>
+    <% if (campaigns.length === 0) { %>
+      <p class="muted">No campaigns are running right now. Donations still earn the base points.</p>
+    <% } else { %>
+      <ul class="plain-list">
+        <% campaigns.forEach(function (campaign) { %>
+          <li class="list-item">
+            <span class="list-item-main">
+              <span class="list-item-title"><%= campaign.title %></span>
+              <span class="list-item-meta"><%= campaign.shopName %></span>
+            </span>
+            <span class="badge badge-bonus">+<%= campaign.bonusPoints %> pts</span>
+          </li>
+        <% }); %>
+      </ul>
+    <% } %>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h2>Rewards</h2>
+      <span class="count-chip"><%= rewards.length %> available</span>
+    </div>
+    <% if (rewards.length === 0) { %>
+      <p class="muted">No rewards have been published yet.</p>
+    <% } else { %>
+      <ul class="plain-list">
+        <% rewards.forEach(function (reward) { %>
+          <li class="list-item">
+            <span class="list-item-main">
+              <span class="list-item-title"><%= reward.title %></span>
+              <span class="list-item-meta"><%= reward.shopName %> &middot; <%= reward.stock %> in stock</span>
+            </span>
+            <span class="badge"><%= reward.pointsCost %> pts</span>
+          </li>
+        <% }); %>
+      </ul>
+    <% } %>
+  </div>
+</section>
+
+<section class="card" aria-labelledby="shops-heading">
+  <div class="card-header">
+    <h2 id="shops-heading">Shops in the network</h2>
+    <span class="count-chip"><%= shops.length %> open</span>
+  </div>
+  <% if (shops.length === 0) { %>
+    <p class="muted">No shops are open yet.</p>
+  <% } else { %>
+    <div class="shop-grid">
+      <% shops.forEach(function (shop) { %>
+        <article class="shop-card">
+          <h3><%= shop.name %></h3>
+          <p class="shop-meta"><%= shop.location %></p>
+          <div class="shop-stats">
+            <span class="badge <%= shop.availableItems > 0 ? 'badge-available' : 'badge-borrowed' %>"><%= shop.availableItems %> available</span>
+            <span class="badge badge-borrowed"><%= shop.borrowedItems %> on loan</span>
+            <span class="badge"><%= shop.totalItems %> items</span>
+          </div>
+        </article>
+      <% }); %>
+    </div>
+  <% } %>
+</section>
+
+<% if (!currentUser) { %>
+  <section class="grid-2">
+    <div class="card">
+      <div class="card-header">
+        <h2 id="loginForm">Welcome back</h2>
+      </div>
+      <form id="loginFormEl" class="stack">
+        <div class="field">
+          <label for="login-username">Username</label>
+          <input id="login-username" name="username" autocomplete="username" required>
+        </div>
+        <div class="field">
+          <label for="login-password">Password</label>
+          <input id="login-password" name="password" type="password" autocomplete="current-password" required>
+        </div>
+        <button class="btn" type="submit">Log in</button>
+        <p class="hint">Seeded demo accounts use the password from <code>SEED_DEFAULT_PASSWORD</code>.</p>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h2>Join as a customer</h2>
+      </div>
+      <form id="registerForm" class="stack">
+        <div class="field">
+          <label for="register-username">Username</label>
+          <input id="register-username" name="username" autocomplete="username" required minlength="3" maxlength="30" placeholder="3-30 letters, digits or _">
+        </div>
+        <div class="field">
+          <label for="register-phone">Thai mobile phone</label>
+          <input id="register-phone" name="phone" inputmode="numeric" pattern="0[0-9]{9}" required placeholder="08xxxxxxxx">
+        </div>
+        <div class="field">
+          <label for="register-password">Password</label>
+          <input id="register-password" name="password" type="password" autocomplete="new-password" required minlength="8" placeholder="At least 8 characters, letters and digits">
+        </div>
+        <button class="btn" type="submit">Create account</button>
+        <p class="hint">New accounts start with 0 points and can borrow up to the configured limit.</p>
+      </form>
+    </div>
+  </section>
+<% } %>
+
+<%- include('../partials/footer') %>

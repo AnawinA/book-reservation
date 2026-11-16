@@ -1,0 +1,990 @@
+# Book Borrowing System: Technical Architecture and Coding Blueprint
+
+**Target engineer:** DeepSeek V4.1 (Lead Software Engineer)
+**Course:** KMITL Server-Side Web Development (Units 1–14)
+
+## How to use this blueprint
+
+1. Paste the **Master Context Prompt** into DeepSeek once, at the start of the session.
+2. Then paste the Phase 1 to Phase 7 prompts in order. Each phase builds on the code from the phase before it.
+3. After each phase, run that phase's **verification gate** before you move on.
+4. If DeepSeek's output gets cut off, reply `CONTINUE FROM: <last file path>`. Every prompt tells it to stop only at the end of a file.
+
+## Architectural Decision Records (ADRs)
+
+Your spec leaves four things open. You need to decide these now, because each one changes the code.
+
+| ADR | Problem | Decision | Trade-off |
+|---|---|---|---|
+| **ADR-1: Shop ownership** | The `users` table can't link an OwnerShop user to a shop, so any owner could manage any shop. | Add a nullable column `users.shop_id` (foreign key to `shops.id`). It's still 6 tables. RBAC checks `req.user.shopId === :shopId`. | This is the only change to the schema. If your instructor forbids it, remove the column and the shop-scope check. |
+| **ADR-2: Reward claim code** | `PATCH /rewards/claim` needs a code, but no table stores redemptions. | When a customer redeems, the server issues a **signed voucher** (an HS256 JWT signed with `REWARD_CODE_SECRET`, valid for 72h, containing `uid, rid, sid, jti`). The claim endpoint checks the signature, expiry, shop and reward. | A voucher can be claimed more than once while it's valid. Write this down in the README as a known limitation, with a 7th `reward_redemptions` table as the future fix. |
+| **ADR-3: Where transactions live** | Business logic that touches several tables needs one place for its transaction. | Models run the transactions through `withTransaction(fn)` in `configs/db.js`. It sends literal `START TRANSACTION` / `COMMIT` / `ROLLBACK` statements and locks rows with `SELECT … FOR UPDATE`. | Controllers stay thin, and the logic can be unit-tested with a mocked connection. |
+| **ADR-4: Test isolation** | Integration tests shouldn't need a live MySQL. | Split `app.js` (the app factory) from `index.js` (which starts listening). Integration tests use Supertest with `jest.mock()` on the model modules. Unit tests mock `configs/db`. | `npm test` runs anywhere, including CI. The real database is checked by the Docker smoke test in Phase 7. |
+
+## Master Context Prompt (paste once, before Phase 1)
+
+```text
+=== MASTER CONTEXT: BOOK BORROWING SYSTEM (KMITL Server-Side Web Development) ===
+
+ROLE
+You are the Lead Software Engineer. You will build a production-grade web application across 7 sequential
+phases. Keep this context in memory for every phase. When a later phase re-emits a file, output the
+COMPLETE new version of that file.
+
+ABSOLUTE OUTPUT RULES
+1. Output every file in full. Never use "...", "// rest unchanged", "// TODO", "implement here", or pseudo-code.
+2. Before each file, print a header line: ### FILE: <relative/path>. Then print the file inside one code fence.
+3. If you approach your output limit, stop ONLY at the end of a file and print: CONTINUE FROM: <next file path>.
+4. Node.js 20 LTS, CommonJS (require / module.exports), Express 4.x. No TypeScript, no ORM, no Joi/Zod.
+5. Use async/await everywhere. Pass every async route handler through utils/asyncHandler.js.
+6. Use only parameterized SQL (? placeholders). Never interpolate user input into SQL strings.
+   The ONLY exception is LIMIT/OFFSET: use pool.query (not execute), and only with integers already
+   validated and passed through Number.parseInt (mysql2 execute + LIMIT ? is buggy on MySQL 8.0.22+).
+7. Every SELECT on a soft-deletable table must include "<alias>.deleted_at IS NULL", and joins must
+   apply it to every joined table.
+8. Models return camelCase objects using SQL aliases (e.g. password_hash AS passwordHash).
+   API JSON is camelCase. DB columns are snake_case.
+9. Never return passwordHash in any API response or EJS locals.
+
+TECH STACK (fixed)
+express ^4.19, ejs ^3.1, mysql2 ^3.9 (mysql2/promise pool), jsonwebtoken ^9, bcrypt ^5.1,
+cookie-parser ^1.4, dotenv ^16, helmet ^7, express-rate-limit ^7.
+Dev: jest ^29, supertest ^7, nodemon ^3.
+
+DIRECTORY STRUCTURE (final)
+configs/      env.js, db.js, jwt.js
+models/       userModel.js, shopModel.js, bookModel.js, campaignModel.js, rewardModel.js, bookItemModel.js
+controllers/  authController.js, publicController.js, customerController.js, ownerShopController.js, adminController.js
+routes/       index.js, authRoutes.js, publicRoutes.js, customerRoutes.js, ownerShopRoutes.js, adminRoutes.js
+middlewares/  authMiddleware.js, errorMiddleware.js
+utils/        AppError.js, asyncHandler.js, response.js, validators.js, pagination.js
+views/        partials/header.ejs, partials/footer.ejs,
+              pages/index.ejs, pages/customer.ejs, pages/shop.ejs, pages/admin.ejs, pages/error.ejs
+public/       css/styles.css, js/api.js, js/home.js, js/customer.js, js/shop.js, js/admin.js
+db/           init.sql, sample-queries.sql
+scripts/      seed.js
+tests/        setupEnv.js, helpers/auth.js, unit/*.test.js, integration/*.test.js
+root          app.js, index.js, package.json, jest.config.js, Dockerfile, docker-compose.yml,
+              .dockerignore, .gitignore, .env.example, README.md
+
+DATABASE SCHEMA (MySQL 8.0, InnoDB, utf8mb4_unicode_ci, all timestamps UTC DATETIME)
+shops            (id PK, name, location, deleted_at)
+users            (id PK, username UNIQUE, phone UNIQUE, points UNSIGNED DEFAULT 0,
+                  role ENUM('Admin','Customer','OwnerShop') DEFAULT 'Customer', password_hash CHAR(60),
+                  shop_id NULL FK->shops.id   [ADR-1: OwnerShop's shop], deleted_at)
+book_collections (id PK, isbn VARCHAR(13) UNIQUE, title, author, category, deleted_at)
+campaigns        (id PK, title, bonus_points UNSIGNED, shop_id FK, start_at, end_at, deleted_at)
+rewards          (id PK, title, points_cost UNSIGNED >0, stock UNSIGNED, shop_id FK, deleted_at)
+book_items       (id PK, book_collection_id FK, barcode VARCHAR(32) UNIQUE,
+                  status ENUM('AVAILABLE','BORROWED','LOST','DAMAGED') DEFAULT 'AVAILABLE',
+                  shop_id FK (current location), donor_user_id FK NULL, campaign_id FK NULL,
+                  borrower_user_id FK NULL, borrowed_at NULL, due_date NULL, deleted_at)
+
+RESPONSE CONTRACT
+Success: { "success": true, "data": <payload>, "meta": { page, limit, total, totalPages } (lists only) }
+204:     empty body
+Error:   { "success": false, "error": { "code": "<CODE>", "message": "<human text>", "details": [ {field, message} ]? } }
+Error codes -> HTTP: VALIDATION_ERROR 400, INSUFFICIENT_POINTS 400, INVALID_REWARD_CODE 400,
+UNAUTHORIZED 401, FORBIDDEN 403, NOT_FOUND 404, CONFLICT 409, OUT_OF_STOCK 409,
+ITEM_NOT_AVAILABLE 409, INVALID_STATUS_TRANSITION 409, BORROW_LIMIT_REACHED 409, INTERNAL_ERROR 500.
+
+VALIDATION RULES (utils/validators.js, pure functions)
+username: /^[A-Za-z0-9_]{3,30}$/
+password: length 8..72 (bcrypt limit), must contain a letter and a digit
+phone:    Thai mobile /^0\d{9}$/
+isbn:     ISBN-10 or ISBN-13 with checksum validation; strip hyphens/spaces; store normalized
+barcode:  /^[A-Z0-9-]{4,32}$/ (uppercase it before validating)
+ids:      positive integers 1..2147483647
+page >=1, limit 1..100 (default page=1, limit=20)
+durationDays: integer 1..MAX_BORROW_DAYS (default DEFAULT_BORROW_DAYS)
+campaign: bonusPoints int 0..1000, startAt/endAt ISO-8601, endAt > startAt
+reward:   pointsCost int 1..100000, stock int 0..100000
+text:     title 1..255, author 1..255, category 1..50, shop name 1..100, location 1..255 (trimmed)
+
+AUTH and RBAC
+- Login issues JWT (HS256, issuer "book-borrowing-system", expiresIn JWT_EXPIRES_IN) with payload
+  { sub: userId, role, shopId }, stored in cookie "token": httpOnly, sameSite "strict",
+  secure = COOKIE_SECURE === "true", path "/", maxAge 24h.
+- Public registration ALWAYS creates role "Customer" (ignore any role field: no privilege escalation).
+- Admin and OwnerShop accounts come from scripts/seed.js.
+- API auth failure -> 401 JSON. Wrong role -> 403 JSON.
+- Page auth failure -> 302 redirect to "/?auth=required". Wrong role -> 403 rendered pages/error.
+- OwnerShop shop scope: req.user.shopId must equal the :shopId param, otherwise 403.
+
+BUSINESS RULES
+Donation: donor found by phone (must be an active Customer); collection found by ISBN (must exist, else 404);
+  barcode optional (auto-generate "BK-" + 8 uppercase hex chars from crypto.randomBytes).
+  points = DONATION_BASE_POINTS + bonus of the best ACTIVE campaign of that shop
+  (start_at <= NOW() < end_at, highest bonus_points). The item's campaign_id is set to that campaign.
+Borrow: item must exist, have status AVAILABLE, and have shop_id == :shopId. Borrower (by phone) must be an
+  active Customer with fewer than MAX_ACTIVE_BORROWS active borrows. Sets borrower_user_id,
+  borrowed_at = NOW(), due_date = NOW() + INTERVAL durationDays DAY.
+Return: item must be BORROWED. Clears borrower_user_id/borrowed_at/due_date, status = AVAILABLE,
+  shop_id = :shopId (the returning shop becomes the current location). Response includes wasOverdue.
+Status update (PATCH): allowed transitions:
+  AVAILABLE->DAMAGED|LOST, DAMAGED->AVAILABLE|LOST, LOST->AVAILABLE, BORROWED->LOST.
+  Target BORROWED is never allowed here (400). An invalid transition gives 409.
+  The item must belong to the owner's shop (403).
+Redeem: inside one transaction, lock user and reward FOR UPDATE; not found -> 404; stock = 0 -> 409 OUT_OF_STOCK;
+  points < cost -> 400 INSUFFICIENT_POINTS; deduct points, stock - 1; COMMIT; then sign the voucher (ADR-2).
+Claim: verify the voucher; voucher sid must equal :shopId and the owner's shopId; reward and customer must still exist.
+Overdue report: status = 'BORROWED' AND due_date < NOW(), joined with users, book_collections, shops,
+  plus DATEDIFF days overdue, ordered by due_date ASC.
+
+ENV VARIABLES
+NODE_ENV, PORT=3000, DB_HOST, DB_PORT=3306, DB_USER, DB_PASSWORD, DB_NAME=book_borrowing,
+DB_CONNECTION_LIMIT=10, MYSQL_ROOT_PASSWORD, JWT_SECRET, JWT_EXPIRES_IN=1d,
+REWARD_CODE_SECRET, REWARD_CODE_TTL=72h, BCRYPT_ROUNDS=10, COOKIE_SECURE=false,
+DONATION_BASE_POINTS=10, DEFAULT_BORROW_DAYS=14, MAX_BORROW_DAYS=30, MAX_ACTIVE_BORROWS=5,
+SEED_ON_START=true, SEED_DEFAULT_PASSWORD=Passw0rd!
+
+EJS LOCALS CONTRACT (every page also receives currentUser = {id, username, role, shopId} | null)
+pages/index    { title, books, categories, shops, campaigns, rewards, query:{q,category,page}, pagination }
+pages/customer { title, profile, borrows, donations, rewards }
+pages/shop     { title, shop, inventory, campaigns, rewards }
+pages/admin    { title, shops, books, campaigns, rewards, overdue, stats }
+pages/error    { title, statusCode, message }
+
+Acknowledge with "MASTER CONTEXT LOADED" and wait for Phase 1.
+```
+
+## Phase 1: Foundation, Tooling and Containerization
+
+### 1. Summary and objective
+This phase creates a runnable, containerized skeleton with nothing in it yet:
+- Config loaded from `.env` and checked at startup.
+- A MySQL connection pool (`mysql2/promise`) and a transaction helper.
+- JWT utilities.
+- A central error handler and a health endpoint that uses Node core modules.
+- Docker Compose running the app and MySQL, with a healthcheck and the `db_data` volume.
+
+**Covers:** Units 1, 2, 3, 4, 6 (dotenv), 8 (pool).
+
+### 2. Files and specs
+
+| File | Spec |
+|---|---|
+| `package.json` | Scripts: `start`, `dev` (nodemon), `test` (`jest --runInBand`), `test:unit`, `test:integration`, `test:coverage`, `seed`. `"engines": {"node": ">=20"}` |
+| `.gitignore` | `node_modules/`, `.env`, `coverage/`, `logs/`, `*.log`, `.DS_Store`, `.vscode/`, `.idea/` |
+| `.dockerignore` | `node_modules`, `.git`, `coverage`, `logs`, `.env`, `tests` |
+| `.env.example` | Every variable from the Master Context, with safe placeholder values |
+| `Dockerfile` | `node:20-bookworm-slim` (glibc, so bcrypt prebuilt binaries work), `npm ci --omit=dev`, runs as non-root `node`, `EXPOSE 3000`, `HEALTHCHECK` with node fetch to `/api/health` |
+| `docker-compose.yml` | Services `db` (mysql:8.0, `mysqladmin ping` healthcheck, `db_data` volume, init.sql mounted into `/docker-entrypoint-initdb.d`, host port 3307) and `app` (`depends_on: condition: service_healthy`, env_file, port 3000, `restart: unless-stopped`) |
+| `jest.config.js` | `testEnvironment: node`, `setupFiles: tests/setupEnv.js`, coverage thresholds, `testMatch` |
+| `configs/env.js` | Loads dotenv once, parses ints and booleans, freezes the config object, fails fast in production if secrets are missing or still at defaults |
+| `configs/db.js` | `pool` (timezone `'Z'`, `decimalNumbers`, `dateStrings: false`), `withTransaction(fn)` with literal TCL statements, `ping()`, `closePool()` |
+| `configs/jwt.js` | `signAccessToken`, `verifyAccessToken`, `signRewardCode`, `verifyRewardCode`, `cookieOptions`, `COOKIE_NAME` |
+| `utils/AppError.js` | `class AppError(statusCode, code, message, details)` plus static factories |
+| `utils/asyncHandler.js` | Wraps async handlers and forwards errors to `next` |
+| `utils/response.js` | `ok(res, data, meta)`, `created(res, data)`, `noContent(res)` |
+| `middlewares/errorMiddleware.js` | `notFound`, `errorHandler`: maps MySQL errors, sends HTML or JSON by path, uses `fs` to append to `logs/error.log` |
+| `views/partials/*`, `views/pages/error.ejs` | Minimal versions here; rewritten fully in Phase 6 |
+| `routes/index.js` | `registerRoutes(app)`, empty for now; re-emitted in each later phase |
+| `app.js` | `createApp()` factory |
+| `index.js` | Starts listening, ensures `logs/` exists with `fs`, handles graceful shutdown |
+| `README.md` | Initial setup instructions |
+
+### 3. DeepSeek prompt
+
+```text
+=== PHASE 1 / 7: FOUNDATION, TOOLING and CONTAINERIZATION ===
+Using the MASTER CONTEXT, generate COMPLETE, production-grade code for every file below.
+Follow the ABSOLUTE OUTPUT RULES. No placeholders.
+
+FILES TO GENERATE
+1. package.json
+   - name "book-borrowing-system", version 1.0.0, main "index.js", private true, engines node >=20.
+   - scripts:
+     "start": "node index.js"
+     "dev": "nodemon index.js"
+     "seed": "node scripts/seed.js"
+     "test": "jest --runInBand"
+     "test:unit": "jest --runInBand tests/unit"
+     "test:integration": "jest --runInBand tests/integration"
+     "test:coverage": "jest --runInBand --coverage"
+   - dependencies and devDependencies exactly as in the MASTER CONTEXT stack.
+
+2. .gitignore: node_modules/, .env, .env.*, !.env.example, coverage/, logs/, *.log,
+   npm-debug.log*, .DS_Store, .vscode/, .idea/, dist/.
+3. .dockerignore: node_modules, .git, .gitignore, coverage, logs, .env, tests, *.md (but keep README.md out of the image too).
+4. .env.example: every ENV VARIABLE from the MASTER CONTEXT, one per line with a short comment.
+   DB_HOST=db (docker), JWT_SECRET=change_me_to_a_64_char_random_string, REWARD_CODE_SECRET=change_me_too.
+
+5. Dockerfile
+   - FROM node:20-bookworm-slim. WORKDIR /usr/src/app. ENV NODE_ENV=production.
+   - COPY package*.json, RUN npm ci --omit=dev && npm cache clean --force.
+   - COPY the rest. RUN mkdir -p logs && chown -R node:node /usr/src/app. USER node. EXPOSE 3000.
+   - HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=5
+     CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+   - CMD: run the seed only when SEED_ON_START=true, then start:
+     CMD ["sh","-c","if [ \"$SEED_ON_START\" = \"true\" ]; then node scripts/seed.js; fi && node index.js"]
+
+6. docker-compose.yml (Compose spec, no "version" key)
+   services:
+     db: image mysql:8.0, container_name bbs-db, restart unless-stopped,
+         environment MYSQL_ROOT_PASSWORD, MYSQL_DATABASE=${DB_NAME}, MYSQL_USER=${DB_USER},
+         MYSQL_PASSWORD=${DB_PASSWORD}, TZ=UTC;
+         command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci;
+         volumes: db_data:/var/lib/mysql and ./db/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro;
+         ports "3307:3306";
+         healthcheck: test ["CMD-SHELL","mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD --silent"],
+         interval 10s, timeout 5s, retries 10, start_period 30s.
+     app: build ., container_name bbs-app, restart unless-stopped, env_file .env,
+          environment DB_HOST=db, DB_PORT=3306; ports "${PORT:-3000}:3000";
+          depends_on: db: condition: service_healthy.
+   volumes: db_data: {}
+
+7. jest.config.js: testEnvironment "node", setupFiles ["<rootDir>/tests/setupEnv.js"],
+   testMatch ["**/tests/**/*.test.js"],
+   collectCoverageFrom [configs, models, controllers, middlewares, utils, routes].js,
+   coverageThreshold global { lines 80, statements 80, functions 75, branches 70 },
+   clearMocks true, restoreMocks true.
+
+8. configs/env.js
+   - require('dotenv').config() exactly once. Export a frozen object:
+     { nodeEnv, isProd, isTest, port, db:{host,port,user,password,database,connectionLimit},
+       jwt:{secret, expiresIn, issuer:'book-borrowing-system'}, reward:{secret, ttl},
+       bcryptRounds, cookieSecure, donationBasePoints, defaultBorrowDays, maxBorrowDays,
+       maxActiveBorrows, seedDefaultPassword }
+   - Helper toInt(value, fallback) and toBool(value, fallback).
+   - When isProd and the JWT or reward secret is missing, shorter than 32 chars, or starts with "change_me":
+     throw an Error with a clear message.
+
+9. configs/db.js
+   - const mysql = require('mysql2/promise'); create the pool with host, port, user, password, database,
+     waitForConnections true, connectionLimit, queueLimit 0, timezone 'Z', decimalNumbers true,
+     charset 'utf8mb4', enableKeepAlive true.
+   - async function withTransaction(work):
+       const conn = await pool.getConnection();
+       try { await conn.query('START TRANSACTION'); const result = await work(conn);
+             await conn.query('COMMIT'); return result; }
+       catch (err) { try { await conn.query('ROLLBACK'); } catch (_) {} throw err; }
+       finally { conn.release(); }
+   - async ping() runs 'SELECT 1 AS ok' and returns true or false.
+   - async closePool().
+   - module.exports = { pool, withTransaction, ping, closePool }.
+
+10. configs/jwt.js
+   - COOKIE_NAME = 'token'.
+   - signAccessToken({id, role, shopId}) uses HS256, subject String(id), issuer, expiresIn; payload {role, shopId}.
+   - verifyAccessToken(token) uses algorithms ['HS256'], issuer; returns {id:Number(sub), role, shopId}.
+   - signRewardCode({userId, rewardId, shopId}) uses REWARD secret, HS256, expiresIn reward.ttl,
+     jwtid crypto.randomUUID(), payload {typ:'reward', uid, rid, sid}.
+   - verifyRewardCode(code) checks typ === 'reward', otherwise throws.
+   - cookieOptions(): {httpOnly:true, sameSite:'strict', secure:cookieSecure, path:'/', maxAge:24*60*60*1000}.
+   - clearCookieOptions(): the same without maxAge.
+
+11. utils/AppError.js: class AppError extends Error {constructor(statusCode, code, message, details)}
+    with isOperational=true. Static factories: badRequest, validation(details), unauthorized, forbidden,
+    notFound(entity), conflict(code, message), insufficientPoints, outOfStock.
+12. utils/asyncHandler.js: fn => (req,res,next) => Promise.resolve(fn(req,res,next)).catch(next).
+13. utils/response.js: ok(res,data,meta) -> 200, created(res,data) -> 201, noContent(res) -> 204 end().
+
+14. middlewares/errorMiddleware.js
+   - notFound(req,res,next): next(AppError.notFound('Route')).
+   - errorHandler(err, req, res, next):
+     * Map: AppError -> its own status. MySQL ER_DUP_ENTRY -> 409 CONFLICT.
+       ER_NO_REFERENCED_ROW_2 -> 400 VALIDATION_ERROR. ER_ROW_IS_REFERENCED_2 -> 409.
+       body-parser SyntaxError (err.type === 'entity.parse.failed') -> 400. JsonWebTokenError and
+       TokenExpiredError -> 401. Everything else -> 500 INTERNAL_ERROR.
+     * For 500 in production, hide the message ("Internal server error").
+     * For status >= 500 and not in test env, use fs.promises.appendFile on path.join(__dirname,'..','logs','error.log')
+       to write an ISO timestamp, method, url and stack (catch and ignore write errors).
+     * If req.originalUrl starts with '/api' OR !req.accepts('html'): send the JSON error contract.
+       Otherwise: res.status(status).render('pages/error', {title:'Error', statusCode, message, currentUser: res.locals.currentUser || null}).
+15. views/partials/header.ejs, views/partials/footer.ejs, views/pages/error.ejs: a minimal valid HTML5 layout
+    (header opens <html>, <head> links /css/styles.css, renders a <nav> by currentUser role; footer closes it).
+    Escape all output with <%= %>. These are rewritten fully in Phase 6.
+16. routes/index.js: function registerRoutes(app) {} with a comment that later phases mount routers here.
+    Export it.
+17. app.js: function createApp()
+   - const app = express(); app.disable('x-powered-by'); app.set('trust proxy', 1);
+   - view engine 'ejs', views path.join(__dirname,'views').
+   - helmet() with the default CSP (no inline scripts allowed: all JS lives in /public/js).
+   - express.json({limit:'100kb'}), express.urlencoded({extended:false}), cookieParser().
+   - express.static(path.join(__dirname,'public'), {maxAge: isProd ? '1d' : 0}).
+   - res.locals.currentUser = null default middleware.
+   - GET /api/health: uses os.hostname(), os.platform(), os.uptime(), os.loadavg(), os.freemem(),
+     os.totalmem(), process.uptime(), and await db.ping().
+     Returns 200 {success:true,data:{status:'ok',db:'up',...}}, or 500 with db:'down'.
+   - registerRoutes(app); app.use(notFound); app.use(errorHandler); return app.
+   - module.exports = { createApp }.
+18. index.js
+   - fs.mkdirSync(path.join(__dirname,'logs'), {recursive:true}).
+   - const app = createApp(); server = app.listen(config.port).
+   - Log the host OS info with the os module on startup.
+   - Graceful shutdown on SIGTERM/SIGINT: server.close, then await closePool(), then process.exit(0);
+     force exit after 10s.
+   - process.on('unhandledRejection') logs the error and shuts down.
+19. README.md: project overview, quick start (cp .env.example .env; docker compose up --build),
+    local dev (npm install; npm run dev), and the npm scripts table.
+
+VERIFICATION GATE
+- docker compose up --build: db becomes healthy, app starts, GET http://localhost:3000/api/health returns 200.
+- Unknown /api route returns 404 JSON in the error contract.
+```
+
+## Phase 2: Database Schema, Seed and SQL Evidence
+
+### 1. Summary and objective
+This phase builds the full relational schema with foreign keys, indexes and CHECK constraints. It adds an idempotent Node seeder (bcrypt hashes are computed at runtime, never hard-coded). It also includes a reference SQL file showing DDL, DML, joins, aggregates and TCL, which the grader can inspect.
+
+**Covers:** Units 6, 7.
+
+### 2. Files and specs
+
+| File | Spec |
+|---|---|
+| `db/init.sql` | Creates the 6 tables in foreign-key order: `shops`, then `users`, `book_collections`, `campaigns`, `rewards`, `book_items`. Includes indexes and CHECK constraints. |
+| `scripts/seed.js` | Idempotent. Hashes passwords with bcrypt. Seeds shops, users (Admin, 2 owners, 2 customers), 6 collections, campaigns (one active, one expired), rewards (one out of stock), items (one overdue borrow). |
+| `db/sample-queries.sql` | Annotated DML, JOIN, GROUP BY/aggregate, soft delete and a full TCL example |
+
+### 3. DeepSeek prompt
+
+```text
+=== PHASE 2 / 7: DATABASE SCHEMA, SEED and SQL EVIDENCE ===
+Using the MASTER CONTEXT and the Phase 1 code, generate COMPLETE code for the files below.
+
+1. db/init.sql
+   - Header comment block. CREATE DATABASE IF NOT EXISTS book_borrowing CHARACTER SET utf8mb4
+     COLLATE utf8mb4_unicode_ci; USE book_borrowing;
+   - All tables: ENGINE=InnoDB, DEFAULT CHARSET=utf8mb4, COLLATE=utf8mb4_unicode_ci, CREATE TABLE IF NOT EXISTS.
+   - All PKs: INT UNSIGNED NOT NULL AUTO_INCREMENT. All FKs: INT UNSIGNED with
+     ON DELETE RESTRICT ON UPDATE CASCADE (hard deletes are blocked; the app uses soft delete).
+   - Creation order: shops, then users, book_collections, campaigns, rewards, book_items.
+   - shops: name VARCHAR(100) NOT NULL, location VARCHAR(255) NOT NULL, deleted_at DATETIME NULL,
+     INDEX idx_shops_deleted (deleted_at).
+   - users: username VARCHAR(30) NOT NULL, phone VARCHAR(10) NOT NULL, points INT UNSIGNED NOT NULL DEFAULT 0,
+     role ENUM('Admin','Customer','OwnerShop') NOT NULL DEFAULT 'Customer', password_hash CHAR(60) NOT NULL,
+     shop_id INT UNSIGNED NULL, deleted_at DATETIME NULL,
+     UNIQUE uq_users_username(username), UNIQUE uq_users_phone(phone), INDEX idx_users_role(role),
+     FK fk_users_shop(shop_id) -> shops(id).
+   - book_collections: isbn VARCHAR(13) NOT NULL, title VARCHAR(255) NOT NULL, author VARCHAR(255) NOT NULL,
+     category VARCHAR(50) NOT NULL, deleted_at DATETIME NULL, UNIQUE uq_books_isbn(isbn),
+     INDEX idx_books_category(category), INDEX idx_books_title(title).
+   - campaigns: title VARCHAR(150) NOT NULL, bonus_points INT UNSIGNED NOT NULL DEFAULT 0, shop_id NOT NULL,
+     start_at DATETIME NOT NULL, end_at DATETIME NOT NULL, deleted_at DATETIME NULL,
+     CONSTRAINT chk_campaign_window CHECK (end_at > start_at),
+     CONSTRAINT chk_campaign_bonus CHECK (bonus_points <= 1000),
+     INDEX idx_campaign_active(shop_id, start_at, end_at), FK -> shops.
+   - rewards: title VARCHAR(150) NOT NULL, points_cost INT UNSIGNED NOT NULL, stock INT UNSIGNED NOT NULL DEFAULT 0,
+     shop_id NOT NULL, deleted_at DATETIME NULL, CONSTRAINT chk_reward_cost CHECK (points_cost > 0),
+     INDEX idx_rewards_shop(shop_id), FK -> shops.
+   - book_items: book_collection_id NOT NULL, barcode VARCHAR(32) NOT NULL,
+     status ENUM('AVAILABLE','BORROWED','LOST','DAMAGED') NOT NULL DEFAULT 'AVAILABLE',
+     shop_id NOT NULL, donor_user_id NULL, campaign_id NULL, borrower_user_id NULL,
+     borrowed_at DATETIME NULL, due_date DATETIME NULL, deleted_at DATETIME NULL,
+     UNIQUE uq_items_barcode(barcode), INDEX idx_items_shop_status(shop_id,status),
+     INDEX idx_items_status_due(status,due_date), INDEX idx_items_borrower(borrower_user_id),
+     INDEX idx_items_donor(donor_user_id), INDEX idx_items_collection(book_collection_id),
+     CONSTRAINT chk_items_dates CHECK (due_date IS NULL OR borrowed_at IS NULL OR due_date >= borrowed_at),
+     FKs: fk_items_collection, fk_items_shop, fk_items_donor (users), fk_items_campaign, fk_items_borrower (users).
+   - IMPORTANT: Do NOT put CHECK constraints on any FK column (MySQL error 3823).
+   - No seed data in this file (the seed lives in scripts/seed.js).
+
+2. scripts/seed.js
+   - Uses configs/env, configs/db (pool, withTransaction, closePool) and bcrypt (config.bcryptRounds).
+   - Retry loop: wait for the DB (ping every 2s, up to 30 tries), then seed inside ONE withTransaction.
+   - Idempotent: if SELECT COUNT(*) FROM users > 0, log "Seed skipped" and exit 0.
+   - Seed data:
+     shops: (1) "KMITL Library Corner" / "Ladkrabang, Bangkok"; (2) "Siam Book Hub" / "Siam Square, Bangkok";
+            (3) "Nimman Reads" / "Chiang Mai".
+     users (password = config.seedDefaultPassword for all, bcrypt hashed):
+       admin / 0800000001 / Admin / shop null / 0 pts
+       owner_ladkrabang / 0800000002 / OwnerShop / shop 1
+       owner_siam / 0800000003 / OwnerShop / shop 2
+       alice / 0811111111 / Customer / 120 pts
+       bob / 0822222222 / Customer / 5 pts
+     book_collections (valid ISBN-13s):
+       9780132350884 Clean Code / Robert C. Martin / Software Engineering
+       9780201633610 Design Patterns / Gamma, Helm, Johnson, Vlissides / Software Engineering
+       9780596517748 JavaScript: The Good Parts / Douglas Crockford / Programming
+       9780134685991 Effective Java / Joshua Bloch / Programming
+       9780262033848 Introduction to Algorithms / Cormen, Leiserson, Rivest, Stein / Computer Science
+       9780135957059 The Pragmatic Programmer / David Thomas, Andrew Hunt / Software Engineering
+     campaigns: "Back to School Bonus" shop 1, bonus 20, start NOW()-INTERVAL 1 DAY, end NOW()+INTERVAL 30 DAY;
+                "Songkran Drive" shop 2, bonus 15, start NOW()-60 DAY, end NOW()-30 DAY (expired).
+     rewards: "Coffee Voucher" 30 pts stock 10 shop 1; "Canvas Tote Bag" 100 pts stock 2 shop 1;
+              "Bookmark Set" 10 pts stock 0 shop 2 (out of stock).
+     book_items (barcodes BK-0001..BK-0010): spread across shops 1 and 2, donors alice/bob, some linked to campaign 1.
+       BK-0003 BORROWED by alice at shop 1, borrowed_at NOW()-INTERVAL 20 DAY, due_date NOW()-INTERVAL 6 DAY (overdue).
+       BK-0004 BORROWED by bob, due in the future. BK-0007 DAMAGED. BK-0009 LOST. The rest AVAILABLE.
+   - Print a summary table of the seeded credentials (usernames only, plus a note about the default password).
+   - Always closePool() in finally. Exit code 1 on failure.
+   - Export a seed() function too (module.exports = { seed }) and only auto-run when require.main === module.
+
+3. db/sample-queries.sql (documentation for graders; every section has a comment header):
+   - DDL example: ALTER TABLE ... ADD INDEX (commented out).
+   - DML: INSERT, UPDATE, soft DELETE (UPDATE ... SET deleted_at = NOW()), SELECT with deleted_at IS NULL.
+   - JOINs: catalog with availability:
+     SELECT bc.isbn, bc.title, COUNT(bi.id) total, SUM(bi.status='AVAILABLE') available ...
+     LEFT JOIN book_items bi ON ... AND bi.deleted_at IS NULL GROUP BY bc.id.
+   - Aggregates: points leaderboard, donations per shop (GROUP BY + HAVING), overdue count per shop.
+   - TCL: a full borrow transaction (START TRANSACTION; SELECT ... FOR UPDATE; UPDATE; COMMIT;)
+     and a redeem transaction showing a ROLLBACK path.
+
+VERIFICATION GATE
+- docker compose down -v && docker compose up --build: tables are created and the seed log is printed.
+- docker exec -it bbs-db mysql -u root -p book_borrowing -e "SHOW TABLES; SELECT username, role FROM users;"
+```
+
+## Phase 3: Model Layer and Validation Utilities
+
+### 1. Summary and objective
+This phase builds the data-access layer. Every SQL statement lives here. All functions are async, all queries are parameterized and soft-delete aware, and anything that changes several tables runs inside `withTransaction`. The pure validators and pagination helpers written here are the main targets of the unit tests.
+
+**Covers:** Units 6, 7, 8, 12.
+
+### 2. Files and specs (the function signatures are the contract for Phases 4–7)
+
+| File | Exported functions |
+|---|---|
+| `utils/validators.js` | `isValidUsername`, `isValidPassword`, `isValidPhone`, `normalizeIsbn`, `isValidIsbn10`, `isValidIsbn13`, `isValidIsbn`, `normalizeBarcode`, `isValidBarcode`, `parsePositiveInt`, `isValidDateString`, `ITEM_STATUSES`, `ROLES`, and the composed validators `validateRegister`, `validateLogin`, `validateShop`, `validateBook`, `validateCampaign`, `validateReward`, `validateDonation`, `validateBorrow`, `validateReturn`, `validateStatusUpdate`, `validateClaim`. Each composed validator returns `{ value, errors[] }`, plus `assertValid(result)`, which throws `AppError.validation`. |
+| `utils/pagination.js` | `parsePagination(query)` returns `{page, limit, offset}` or throws 400; `buildMeta(page, limit, total)` |
+| `models/userModel.js` | `findById(id, conn)`, `findByUsernameWithHash(username)`, `findByPhone(phone, conn)`, `findConflicts(username, phone)`, `create({...}, conn)`, `addPoints(userId, delta, conn)`, `softDelete(id)` |
+| `models/shopModel.js` | `findAll()` (with item stats via aggregate), `findById(id)`, `create`, `update`, `countActiveBorrows(shopId)`, `softDelete(id)` |
+| `models/bookModel.js` | `search({q, category, page, limit})` returns `{items, total}` with availability counts; `findByIsbn(isbn)` returns the collection plus `availabilityByShop[]`; `findById`, `findCategories`, `create`, `update` |
+| `models/campaignModel.js` | `findAll({activeOnly, shopId})`, `findById`, `create`, `update`, `findBestActiveForShop(shopId, conn)` |
+| `models/rewardModel.js` | `findAll({shopId})`, `findById`, `create`, `update`, `redeem({userId, rewardId})` (transaction) |
+| `models/bookItemModel.js` | `findByBarcode`, `findInventoryByShop(shopId, {status, page, limit})`, `findDonationsByUser`, `findBorrowsByUser`, `donate(...)`, `borrow(...)`, `returnItem(...)`, `updateStatus(...)`, `findOverdue()`, `STATUS_TRANSITIONS` |
+
+### 3. DeepSeek prompt
+
+```text
+=== PHASE 3 / 7: MODEL LAYER and VALIDATION UTILITIES ===
+Using the MASTER CONTEXT and Phases 1-2, generate COMPLETE code for the files below.
+Every model function: async, accepts an optional final "conn" argument defaulting to pool, uses
+conn.execute for parameterized statements (pool.query only for LIMIT/OFFSET), aliases columns to camelCase,
+and filters deleted_at IS NULL on every table it reads.
+
+1. utils/validators.js (PURE functions, no DB access, 100% unit-testable)
+   - Implement every rule in the MASTER CONTEXT "VALIDATION RULES" section.
+   - normalizeIsbn(s): String(s).replace(/[-\s]/g,'').toUpperCase().
+   - isValidIsbn10: 9 digits + (digit|X), sum of (10-i)*d_i over i=0..9, X=10, sum % 11 === 0.
+   - isValidIsbn13: 13 digits, sum with weights 1,3 alternating, sum % 10 === 0.
+   - isValidIsbn: the normalized value is valid as 10 OR 13 digits.
+   - parsePositiveInt(v): returns the integer when /^\d+$/ and 1..2147483647, else null.
+   - isValidDateString(s): Date.parse is not NaN and the string matches the ISO-8601 shape.
+   - ITEM_STATUSES = ['AVAILABLE','BORROWED','LOST','DAMAGED'], ROLES = ['Admin','Customer','OwnerShop'].
+   - Composed validators return {value, errors}, where value is trimmed/normalized/coerced and
+     errors is [{field, message}]:
+     validateRegister({username, phone, password}); validateLogin({username, password}) (presence + types only);
+     validateShop({name, location}); validateBook({isbn, title, author, category});
+     validateCampaign({title, bonusPoints, shopId, startAt, endAt}); validateReward({title, pointsCost, stock, shopId});
+     validateDonation({donorPhone, isbn, barcode?}); validateBorrow({barcode, borrowerPhone, durationDays?}, {defaultDays, maxDays});
+     validateReturn({barcode}); validateStatusUpdate({status}) (rejects BORROWED and unknown values);
+     validateClaim({code}) (non-empty string <= 2048 chars).
+   - assertValid({value, errors}): throws AppError.validation(errors) if errors.length, else returns value.
+
+2. utils/pagination.js
+   - parsePagination(query): page default 1, limit default 20; page >= 1, limit 1..100, otherwise
+     throw AppError.validation([{field,message}]). Returns {page, limit, offset:(page-1)*limit}.
+   - buildMeta(page, limit, total): {page, limit, total, totalPages: Math.max(1, Math.ceil(total/limit))}.
+
+3. models/userModel.js
+   - PUBLIC_COLUMNS constant: id, username, phone, points, role, shop_id AS shopId. Never select password_hash
+     except in findByUsernameWithHash.
+   - findConflicts(username, phone) returns {username:boolean, phone:boolean}. Check across ALL rows, including
+     soft-deleted ones, because the UNIQUE indexes still apply to them.
+   - create({username, phone, passwordHash, role='Customer', shopId=null}, conn) returns insertId.
+   - addPoints(userId, delta, conn): UPDATE users SET points = points + ? WHERE id = ? AND deleted_at IS NULL.
+     If affectedRows === 0, throw AppError.notFound('User').
+
+4. models/shopModel.js
+   - findAll(): shops LEFT JOIN book_items (deleted_at IS NULL in the ON clause)
+     GROUP BY s.id, returning totalItems, availableItems (SUM(bi.status='AVAILABLE')), borrowedItems.
+     Cast the SUM results with Number() in JS.
+   - update(id, {name, location}) returns the updated row, or null if not found.
+   - countActiveBorrows(shopId): COUNT(*) of book_items with status='BORROWED' and shop_id=?.
+   - softDelete(id): UPDATE shops SET deleted_at = UTC_TIMESTAMP() WHERE id=? AND deleted_at IS NULL;
+     returns a boolean.
+
+5. models/bookModel.js
+   - search({q, category, page, limit}): dynamic WHERE built from a whitelist of fragments with params
+     (q matches title/author/isbn via LIKE CONCAT('%', ?, '%')). One COUNT(*) query for the total, plus the data
+     query with LEFT JOIN book_items, GROUP BY bc.id, totalCopies, availableCopies, ORDER BY bc.title, LIMIT/OFFSET.
+     Returns {items, total}.
+   - findByIsbn(isbn): the collection, plus availabilityByShop =
+     SELECT s.id shopId, s.name shopName, COUNT(*) total, SUM(bi.status='AVAILABLE') available
+     ... GROUP BY s.id. Returns null if not found.
+   - findCategories(): SELECT DISTINCT category ... ORDER BY category.
+   - create / update (update returns the row or null).
+
+6. models/campaignModel.js
+   - findAll({activeOnly=false, shopId}) joins shops (shopName), adds a computed
+     isActive = (start_at <= UTC_TIMESTAMP() AND end_at > UTC_TIMESTAMP()), and filters by shop when given.
+   - findBestActiveForShop(shopId, conn): active campaign with MAX bonus_points
+     (ORDER BY bonus_points DESC, id ASC LIMIT 1). Returns the row or null.
+   - create({title, bonusPoints, shopId, startAt, endAt}) and update(id, {...}). Convert ISO strings to Date objects.
+
+7. models/rewardModel.js
+   - findAll({shopId}) joins shops for shopName.
+   - redeem({userId, rewardId}) uses withTransaction(async conn => {...}):
+       a. SELECT id, points FROM users WHERE id=? AND deleted_at IS NULL FOR UPDATE  -> none: NOT_FOUND('User')
+       b. SELECT id, title, points_cost, stock, shop_id FROM rewards WHERE id=? AND deleted_at IS NULL FOR UPDATE -> NOT_FOUND('Reward')
+       c. stock < 1 -> throw AppError.outOfStock()
+       d. points < cost -> throw AppError.insufficientPoints()
+       e. UPDATE users SET points = points - ? WHERE id=? AND points >= ?   (affectedRows must be 1)
+       f. UPDATE rewards SET stock = stock - 1 WHERE id=? AND stock > 0     (affectedRows must be 1)
+       g. Return {reward:{id,title,pointsCost,shopId}, remainingPoints, remainingStock}.
+     Any thrown error triggers ROLLBACK through withTransaction.
+
+8. models/bookItemModel.js
+   - ITEM_SELECT constant joins book_collections (isbn, title, author) and shops (shopName), plus borrower username
+     via LEFT JOIN users.
+   - STATUS_TRANSITIONS = { AVAILABLE:['DAMAGED','LOST'], DAMAGED:['AVAILABLE','LOST'], LOST:['AVAILABLE'], BORROWED:['LOST'] }.
+   - findInventoryByShop(shopId, {status, page, limit}) returns {items, total}, with an optional status filter.
+   - findDonationsByUser(userId): items where donor_user_id = ?, with campaign title.
+   - findBorrowsByUser(userId): status='BORROWED' AND borrower_user_id=?, plus
+     isOverdue = (due_date < UTC_TIMESTAMP()) and daysRemaining = DATEDIFF(due_date, UTC_TIMESTAMP()).
+   - donate({shopId, donorPhone, isbn, barcode}) uses withTransaction:
+       shop active (FOR UPDATE not needed) -> NOT_FOUND('Shop'); donor by phone, must be role Customer -> NOT_FOUND('Donor');
+       collection by isbn -> NOT_FOUND('Book collection'); barcode = given or "BK-" + crypto.randomBytes(4).toString('hex').toUpperCase();
+       campaign = findBestActiveForShop(shopId, conn); INSERT book_items(... status 'AVAILABLE', campaign_id);
+       pointsAwarded = config.donationBasePoints + (campaign ? campaign.bonusPoints : 0);
+       userModel.addPoints(donor.id, pointsAwarded, conn).
+       Returns {item, pointsAwarded, basePoints, bonusPoints, campaign, donor:{id,username,points}}.
+   - borrow({shopId, barcode, borrowerPhone, durationDays}) uses withTransaction:
+       SELECT ... FROM book_items WHERE barcode=? AND deleted_at IS NULL FOR UPDATE -> NOT_FOUND('Book item');
+       item.shopId !== shopId -> AppError.forbidden('Item is not located at this shop');
+       status !== 'AVAILABLE' -> 409 ITEM_NOT_AVAILABLE;
+       borrower by phone, must be role Customer -> NOT_FOUND('Borrower');
+       SELECT COUNT(*) active borrows FOR the borrower; if >= config.maxActiveBorrows -> 409 BORROW_LIMIT_REACHED;
+       UPDATE book_items SET status='BORROWED', borrower_user_id=?, borrowed_at=UTC_TIMESTAMP(),
+         due_date=DATE_ADD(UTC_TIMESTAMP(), INTERVAL ? DAY) WHERE id=? AND status='AVAILABLE';
+       re-select and return the item.
+   - returnItem({shopId, barcode}) uses withTransaction: lock the item; not found -> 404; status !== 'BORROWED' -> 409 ITEM_NOT_AVAILABLE
+       ("Item is not currently borrowed"); compute wasOverdue = due_date < now; UPDATE status='AVAILABLE',
+       borrower_user_id=NULL, borrowed_at=NULL, due_date=NULL, shop_id=? (returning shop). Return {item, wasOverdue, previousShopId}.
+   - updateStatus({barcode, status, actorShopId}) uses withTransaction: lock; 404; item.shopId !== actorShopId -> 403;
+       !STATUS_TRANSITIONS[item.status].includes(status) -> 409 INVALID_STATUS_TRANSITION;
+       UPDATE status (when moving LOST->AVAILABLE or DAMAGED->AVAILABLE also NULL the borrow fields). Return the updated item.
+   - findOverdue(): join users, book_collections, shops; WHERE bi.status='BORROWED' AND bi.due_date < UTC_TIMESTAMP()
+       AND all deleted_at IS NULL; daysOverdue = DATEDIFF(UTC_TIMESTAMP(), bi.due_date); ORDER BY bi.due_date ASC.
+
+VERIFICATION GATE
+- node -e "require('./models/bookItemModel'); require('./utils/validators')" loads without errors.
+- Every model file contains only parameterized SQL, and every SELECT includes deleted_at IS NULL.
+```
+
+## Phase 4: Authentication, RBAC Middleware and Public API
+
+### 1. Summary and objective
+This phase builds the security perimeter:
+- bcrypt registration and login.
+- The JWT is issued into the HttpOnly `token` cookie and read back through `cookie-parser`.
+- Separate API and page auth guards.
+- A role guard (`authorize`) and a shop-scope guard (`requireOwnShop`).
+- Rate limiting on the auth endpoints.
+
+It also delivers the public read-only API and the server-rendered home page handler.
+
+**Covers:** Units 9, 13, 14.
+
+### 2. Files and specs
+
+| File | Spec |
+|---|---|
+| `middlewares/authMiddleware.js` | `attachUser` (optional, sets `res.locals.currentUser`), `authenticateApi`, `authenticatePage`, `authorize(...roles)`, `authorizePage(...roles)`, `requireOwnShop(param)` |
+| `controllers/authController.js` | `register` (201), `login` (200 plus cookie), `logout` (200, clears cookie) |
+| `controllers/publicController.js` | `renderHome`, `listShops`, `listBooks`, `getBookByIsbn`, `listCampaigns`, `listRewards` |
+| `routes/authRoutes.js` | `/api/auth/*` with `express-rate-limit` (skipped in test) |
+| `routes/publicRoutes.js` | `GET /` and `GET /api/{shops,books,books/:isbn,campaigns,rewards}` |
+| `routes/index.js` | Re-emitted: mounts `attachUser`, authRoutes, publicRoutes |
+
+### 3. DeepSeek prompt
+
+```text
+=== PHASE 4 / 7: AUTHENTICATION, RBAC MIDDLEWARE and PUBLIC API ===
+Using the MASTER CONTEXT and Phases 1-3, generate COMPLETE code for the files below.
+
+1. middlewares/authMiddleware.js
+   - readToken(req) = req.cookies?.[COOKIE_NAME] (cookie only; do NOT accept Authorization headers).
+   - attachUser (global, never blocks): if the token verifies, set req.user = {id, role, shopId} and
+     res.locals.currentUser = {id, role, shopId, username?} (username is not in the token, so omit it; the header shows the role).
+     On an invalid or expired token, res.clearCookie(COOKIE_NAME, clearCookieOptions()) and continue.
+   - authenticateApi: no req.user -> next(AppError.unauthorized('Authentication required')).
+   - authenticatePage: no req.user -> res.redirect(302, '/?auth=required').
+   - authorize(...roles): returns middleware; !roles.includes(req.user.role) -> next(AppError.forbidden('Insufficient role')).
+   - authorizePage(...roles): wrong role -> res.status(403).render('pages/error', {title:'Forbidden', statusCode:403,
+     message:'You do not have access to this page.', currentUser: res.locals.currentUser}).
+   - requireOwnShop(paramName = 'shopId'): parsePositiveInt(req.params[paramName]) -> null: 400 VALIDATION_ERROR;
+     req.user.shopId == null or !== the parsed id -> 403; on success sets req.shopId = parsed id.
+   - Export all of these.
+
+2. controllers/authController.js
+   - register: assertValid(validateRegister(req.body)); findConflicts -> 409 CONFLICT with details for each taken
+     field; passwordHash = await bcrypt.hash(password, config.bcryptRounds); create with role 'Customer' (ALWAYS);
+     respond 201 {id, username, phone, role:'Customer', points:0}. Do NOT log the user in automatically.
+   - login: validateLogin; user = findByUsernameWithHash(username). To resist timing attacks, when the user is
+     missing, still run bcrypt.compare against a constant dummy hash. If missing or the password does not match:
+     401 "Invalid username or password". Sign the token, set res.cookie(COOKIE_NAME, token, cookieOptions()),
+     and respond 200 {user:{id,username,role,points,shopId}, redirectTo} where redirectTo is
+     Admin->/admin/dashboard, OwnerShop->/shop/dashboard, Customer->/customer/dashboard.
+     Never put the token in the JSON body.
+   - logout: res.clearCookie(COOKIE_NAME, clearCookieOptions()); 200 {message:'Logged out'}. Works even when
+     the user is not logged in (idempotent).
+
+3. controllers/publicController.js
+   - listShops -> ok(res, await shopModel.findAll()).
+   - listBooks: parsePagination(req.query); q (trim, max 100), category (trim, max 50);
+     {items,total} = bookModel.search(...); ok(res, items, buildMeta(...)).
+   - getBookByIsbn: normalizeIsbn and isValidIsbn -> 400; findByIsbn -> null 404; ok.
+   - listCampaigns: ?active=true -> activeOnly. listRewards: optional ?shopId (validated).
+   - renderHome: run books (search page 1 or query), categories, shops, campaigns(activeOnly), rewards in parallel
+     with Promise.all, then res.render('pages/index', {title:'Book Catalog', ...locals contract, currentUser: res.locals.currentUser,
+     authRequired: req.query.auth === 'required'}). If the query params are invalid, fall back to the defaults
+     instead of throwing (the page must never 400).
+
+4. routes/authRoutes.js
+   - const authLimiter = rateLimit({windowMs: 15*60*1000, limit: 20, standardHeaders:'draft-7', legacyHeaders:false,
+     skip: () => config.isTest, handler sends the JSON error contract with status 429 code 'TOO_MANY_REQUESTS'}).
+   - POST /api/auth/register, POST /api/auth/login (both use authLimiter), POST /api/auth/logout.
+
+5. routes/publicRoutes.js
+   - GET / -> renderHome; GET /api/shops; GET /api/books; GET /api/books/:isbn; GET /api/campaigns; GET /api/rewards.
+   - Wrap every handler with asyncHandler.
+
+6. routes/index.js (re-emit in full)
+   - registerRoutes(app): app.use(attachUser); app.use(authRoutes); app.use(publicRoutes).
+   - Leave a clearly labelled place for the customer, ownerShop and admin routers (added in Phases 5-6).
+
+VERIFICATION GATE (with Docker running)
+- POST /api/auth/register valid -> 201; same username again -> 409; password "short1" -> 400.
+- POST /api/auth/login (alice / seed password) -> 200 + Set-Cookie: token=...; HttpOnly; SameSite=Strict.
+- POST /api/auth/logout -> 200, and the cookie is cleared.
+- GET /api/books?limit=101 -> 400; GET /api/books/9780132350884 -> 200; GET /api/books/9780132350885 -> 400.
+```
+
+## Phase 5: Customer and OwnerShop Transactional APIs
+
+### 1. Summary and objective
+This phase adds the main business flows (redeem, donate, borrow, return, status change and voucher claim) on top of the transactional models. Each route is protected by layered middleware: `authenticateApi`, then `authorize(role)`, then `requireOwnShop` where it applies. It also adds the dashboard page handlers for both roles.
+
+**Covers:** Units 7 (TCL), 9, 13, 14.
+
+### 2. Files and specs
+
+| Endpoint | Guard chain | Success | Failures |
+|---|---|---|---|
+| `GET /customer/dashboard` | authenticatePage, then authorizePage('Customer') | 200 HTML | 302, 403 |
+| `GET /api/customer/profile` | authenticateApi, then authorize('Customer') | 200 | 401, 403, 404 |
+| `GET /api/customer/donations` | same | 200 | 401, 403 |
+| `GET /api/customer/borrows` | same | 200 | 401, 403 |
+| `POST /api/customer/rewards/:rewardId/redeem` | same | 201 (includes `redemptionCode`) | 400, 404, 409 |
+| `GET /shop/dashboard` | authenticatePage, then authorizePage('OwnerShop') | 200 HTML | 302, 403 |
+| `GET /api/shops/:shopId/inventory` | authenticateApi, then authorize('OwnerShop'), then requireOwnShop | 200 | 400, 401, 403 |
+| `GET /api/book-items/:barcode` | authenticateApi, then authorize('OwnerShop') | 200 | 400, 404 |
+| `POST /api/shops/:shopId/donations` | full chain plus own shop | 201 | 400, 404 |
+| `POST /api/shops/:shopId/borrows` | full chain plus own shop | 201 | 400, 403, 404, 409 |
+| `POST /api/shops/:shopId/returns` | full chain plus own shop | 200 | 400, 404, 409 |
+| `PATCH /api/book-items/:barcode/status` | authenticateApi, then authorize('OwnerShop') | 200 | 400, 403, 404, 409 |
+| `PATCH /api/shops/:shopId/rewards/claim` | full chain plus own shop | 200 | 400, 403, 404 |
+
+### 3. DeepSeek prompt
+
+```text
+=== PHASE 5 / 7: CUSTOMER and OWNERSHOP TRANSACTIONAL APIs ===
+Using the MASTER CONTEXT and Phases 1-4, generate COMPLETE code for the files below.
+Controllers stay THIN: validate -> call model -> shape response. All SQL stays in the models.
+
+1. controllers/customerController.js
+   - getProfile: userModel.findById(req.user.id) -> null 404 -> ok(profile).
+   - getDonations: ok(await bookItemModel.findDonationsByUser(req.user.id)), plus meta {count}.
+   - getBorrows: ok(borrows), plus meta {count, overdueCount}.
+   - redeemReward: rewardId = parsePositiveInt(req.params.rewardId) -> null 400;
+     result = await rewardModel.redeem({userId:req.user.id, rewardId});
+     redemptionCode = signRewardCode({userId, rewardId, shopId: result.reward.shopId});
+     created(res, {redemptionCode, reward: result.reward, remainingPoints: result.remainingPoints,
+     expiresIn: config.reward.ttl, instructions: 'Present this code at the reward shop counter.'}).
+   - renderDashboard: Promise.all of profile, borrows, donations, rewards (rewardModel.findAll()).
+     If the profile is null (user soft-deleted): clear the cookie and redirect to '/?auth=required'.
+     res.render('pages/customer', {title:'My Dashboard', profile, borrows, donations, rewards, currentUser}).
+     Augment currentUser with profile.username.
+
+2. controllers/ownerShopController.js
+   - getInventory: parsePagination(req.query); optional status filter must be in ITEM_STATUSES -> else 400;
+     {items,total} = findInventoryByShop(req.shopId, ...); ok with meta.
+   - getBookItem: barcode = normalizeBarcode(req.params.barcode); !isValidBarcode -> 400; findByBarcode -> 404; ok.
+   - createDonation: value = assertValid(validateDonation(req.body)); result = bookItemModel.donate({shopId:req.shopId, ...value});
+     created(result).
+   - createBorrow: value = assertValid(validateBorrow(req.body, {defaultDays:config.defaultBorrowDays, maxDays:config.maxBorrowDays}));
+     created(await bookItemModel.borrow({shopId:req.shopId, ...value})).
+   - createReturn: assertValid(validateReturn(req.body)); ok(await bookItemModel.returnItem({shopId:req.shopId, barcode})).
+   - updateItemStatus: barcode param validated; assertValid(validateStatusUpdate(req.body));
+     ok(await bookItemModel.updateStatus({barcode, status, actorShopId:req.user.shopId})).
+   - claimReward: {code} = assertValid(validateClaim(req.body));
+     try verifyRewardCode(code) catch -> throw new AppError(400,'INVALID_REWARD_CODE','Reward code is invalid or expired');
+     payload.sid !== req.shopId -> 403 'This reward belongs to another shop';
+     reward = rewardModel.findById(payload.rid) -> 404; customer = userModel.findById(payload.uid) -> 404;
+     ok({valid:true, claimedAt:new Date().toISOString(), reward:{id,title,pointsCost}, customer:{id,username},
+         voucherId: payload.jti, issuedAt: new Date(payload.iat*1000).toISOString()}).
+   - renderDashboard: req.user.shopId null -> 403 error page. shop = shopModel.findById(shopId) -> null 403 page.
+     Promise.all of inventory (page 1, limit 50), campaigns({shopId}), rewards({shopId}).
+     res.render('pages/shop', {title: shop.name + ' Dashboard', shop, inventory: inventory.items, campaigns, rewards, currentUser}).
+
+3. routes/customerRoutes.js (full paths, router mounted at root)
+   const apiGuard = [authenticateApi, authorize('Customer')];
+   GET  /customer/dashboard                       authenticatePage, authorizePage('Customer'), renderDashboard
+   GET  /api/customer/profile                     ...apiGuard, getProfile
+   GET  /api/customer/donations                   ...apiGuard, getDonations
+   GET  /api/customer/borrows                     ...apiGuard, getBorrows
+   POST /api/customer/rewards/:rewardId/redeem    ...apiGuard, redeemReward
+
+4. routes/ownerShopRoutes.js
+   const ownerGuard = [authenticateApi, authorize('OwnerShop')];
+   const ownShop = [...ownerGuard, requireOwnShop('shopId')];
+   GET   /shop/dashboard                     authenticatePage, authorizePage('OwnerShop'), renderDashboard
+   GET   /api/shops/:shopId/inventory        ...ownShop, getInventory
+   GET   /api/book-items/:barcode            ...ownerGuard, getBookItem
+   POST  /api/shops/:shopId/donations        ...ownShop, createDonation
+   POST  /api/shops/:shopId/borrows          ...ownShop, createBorrow
+   POST  /api/shops/:shopId/returns          ...ownShop, createReturn
+   PATCH /api/book-items/:barcode/status     ...ownerGuard, updateItemStatus
+   PATCH /api/shops/:shopId/rewards/claim    ...ownShop, claimReward
+   IMPORTANT: this router must be mounted BEFORE publicRoutes' generic handlers (none conflict, but keep the
+   order explicit). The public GET /api/shops (no param) must still work unauthenticated.
+
+5. routes/index.js (re-emit in full): attachUser, authRoutes, customerRoutes, ownerShopRoutes, publicRoutes,
+   plus a clearly labelled place for adminRoutes (Phase 6).
+
+VERIFICATION GATE (Docker running, cookies via curl -c/-b)
+- alice redeems reward 1 (Coffee Voucher, 30 pts) -> 201 + redemptionCode; points 120 -> 90; stock 10 -> 9.
+- bob (5 pts) redeems reward 1 -> 400 INSUFFICIENT_POINTS; anyone redeems reward 3 -> 409 OUT_OF_STOCK.
+- owner_ladkrabang: POST /api/shops/2/borrows -> 403; POST /api/shops/1/donations {donorPhone:"0822222222",
+  isbn:"9780132350884"} -> 201, pointsAwarded 30 (10 base + 20 campaign).
+- Borrow BK-0001 -> 201; borrow again -> 409 ITEM_NOT_AVAILABLE; return -> 200 wasOverdue false.
+- PATCH /api/shops/1/rewards/claim with alice's code -> 200; tampered code -> 400; as owner_siam -> 403.
+```
+
+## Phase 6: Admin API, Overdue Report and SSR Views
+
+### 1. Summary and objective
+This phase completes the Admin suite: CRUD for shops, books, campaigns and rewards, a guarded soft delete, and the overdue report built from joins and aggregates. It also delivers all the EJS views and static assets.
+
+The pages are server-rendered with their first data already in place. JavaScript files in `/public/js` (no inline scripts, because of the helmet CSP) then call the REST API for changes, sending the HttpOnly cookie automatically.
+
+**Covers:** Units 1/4 (static and path), 6/7 (aggregates, joins), 9, 12.
+
+### 2. Files and specs
+
+| File | Spec |
+|---|---|
+| `controllers/adminController.js` | `renderDashboard`, CRUD handlers, `deleteShop` (204; 409 if the shop has active borrows), `getOverdueReport` |
+| `routes/adminRoutes.js` | All `/api/admin/*` plus `/admin/dashboard` |
+| `routes/index.js` | Final version |
+| `views/partials/header.ejs` / `footer.ejs` | Full layout, nav by role, logout button, flash area |
+| `views/pages/index.ejs` | Search and filter form (GET), catalog table with availability, active campaigns, rewards, login and register forms |
+| `views/pages/customer.ejs` | Profile card with points, active borrows (overdue highlighted), donations, reward cards with a redeem button and voucher display |
+| `views/pages/shop.ejs` | Donation, borrow, return, status and claim forms; inventory table; barcode lookup |
+| `views/pages/admin.ejs` | KPI stats, tabbed CRUD tables plus forms for the 4 entities, overdue report table |
+| `views/pages/error.ejs` | Final version |
+| `public/css/styles.css` | Responsive, accessible, no framework |
+| `public/js/api.js` | `apiFetch(method, url, body)` wrapper, `showMessage()`, `formToJSON()` |
+| `public/js/{home,customer,shop,admin}.js` | Page-specific event binding |
+
+### 3. DeepSeek prompt
+
+```text
+=== PHASE 6 / 7: ADMIN API, OVERDUE REPORT and SSR VIEWS ===
+Using the MASTER CONTEXT and Phases 1-5, generate COMPLETE code for the files below.
+
+1. controllers/adminController.js
+   - Shops:     createShop (validateShop -> 201 with the created row), updateShop (PUT, full replacement,
+                id via parsePositiveInt -> 400, not found -> 404, 200),
+                deleteShop: not found -> 404; countActiveBorrows > 0 -> 409 CONFLICT
+                "Shop has active borrows"; softDelete -> res.status(204).end().
+   - Books:     createBook (validateBook; ISBN normalized; ER_DUP_ENTRY -> 409 via errorMiddleware -> 201),
+                updateBook (PUT /:collectionId -> 200/404/409).
+   - Campaigns: createCampaign / updateCampaign (validateCampaign; shopId must reference an active shop,
+                otherwise 400 VALIDATION_ERROR with field "shopId").
+   - Rewards:   createReward / updateReward (validateReward; same shop check).
+   - getOverdueReport: rows = bookItemModel.findOverdue();
+     ok(rows, {count: rows.length, totalDaysOverdue: sum, byShop: aggregate {shopId, shopName, count}}).
+   - renderDashboard: Promise.all of shops, books (search page 1 limit 100), campaigns, rewards, overdue;
+     stats = {shopCount, bookCount, activeCampaigns, overdueCount, totalRewardStock};
+     render 'pages/admin'.
+
+2. routes/adminRoutes.js
+   const adminGuard = [authenticateApi, authorize('Admin')];
+   GET    /admin/dashboard                    authenticatePage, authorizePage('Admin'), renderDashboard
+   POST   /api/admin/shops                    201
+   PUT    /api/admin/shops/:shopId            200
+   DELETE /api/admin/shops/:shopId            204 (soft delete)
+   POST   /api/admin/books                    201
+   PUT    /api/admin/books/:collectionId      200
+   POST   /api/admin/campaigns                201
+   PUT    /api/admin/campaigns/:campaignId    200
+   POST   /api/admin/rewards                  201
+   PUT    /api/admin/rewards/:rewardId        200
+   GET    /api/admin/reports/overdue          200
+
+3. routes/index.js (FINAL): attachUser, authRoutes, customerRoutes, ownerShopRoutes, adminRoutes, publicRoutes.
+
+4. EJS views (escape ALL dynamic output with <%= %>; never use <%- %> except for include();
+   NO inline <script> blocks and NO inline event handlers like onclick, because the helmet CSP blocks them).
+   - partials/header.ejs: <!doctype html>, lang="en", meta viewport, <title><%= title %> | Book Borrowing</title>,
+     /css/styles.css, nav: brand link "/", then by currentUser.role: Customer -> /customer/dashboard,
+     OwnerShop -> /shop/dashboard, Admin -> /admin/dashboard; a logout button id="logoutBtn" when logged in;
+     <div id="flash" role="status" aria-live="polite"></div>; opens <main class="container">.
+   - partials/footer.ejs: closes main, footer with © year, <script src="/js/api.js"></script>,
+     then <% if (typeof pageScript !== 'undefined') { %><script src="/js/<%= pageScript %>.js"></script><% } %>.
+     Each page sets pageScript through the include locals.
+   - pages/index.ejs: banner if authRequired; GET search form (q, category select from categories);
+     books table (ISBN, title, author, category, available/total); pagination links that keep q and category;
+     active campaigns list; rewards list; when !currentUser, login form id="loginForm" and register form
+     id="registerForm". pageScript 'home'.
+   - pages/customer.ejs: profile (username, phone, points as a highlighted number); borrows table with an
+     overdue badge and daysRemaining; donations table; reward cards with button.redeem-btn data-reward-id and
+     data-cost (disabled when stock is 0 or points are too low); a #voucherBox <pre> to show the redemptionCode.
+     pageScript 'customer'.
+   - pages/shop.ejs: hidden input #shopId; forms #donationForm (donorPhone, isbn, barcode optional),
+     #borrowForm (barcode, borrowerPhone, durationDays min 1 max 30), #returnForm (barcode),
+     #statusForm (barcode, status select AVAILABLE/DAMAGED/LOST), #claimForm (code textarea), #lookupForm (barcode);
+     an inventory table with a status badge. pageScript 'shop'.
+   - pages/admin.ejs: KPI tiles from stats; sections for Shops/Books/Campaigns/Rewards, each with a table and a
+     create form (#shopForm, #bookForm, #campaignForm with datetime-local inputs, #rewardForm); edit by
+     button.edit-btn data-entity data-id data-json (JSON escaped through <%= JSON.stringify(row) %>);
+     delete button only for shops; overdue table (username, phone, title, barcode, shop, due date, daysOverdue).
+     pageScript 'admin'.
+   - pages/error.ejs: statusCode, message, link home.
+
+5. public/js/api.js
+   - async apiFetch(method, url, body): fetch with credentials 'same-origin', JSON headers;
+     a 204 returns null; a non-2xx throws Error(err.error.message) with .details; returns the parsed json.data
+     (attach .meta).
+   - showMessage(text, type='success'|'error'): renders into #flash and auto-hides after 5s.
+   - formToJSON(form): FormData to object, dropping empty strings; numeric fields named in data-numeric get converted.
+   - Logout button handler: POST /api/auth/logout, then location.href='/'.
+   - Expose window.App = {apiFetch, showMessage, formToJSON}.
+
+6. public/js/home.js: login (on success location.href = data.redirectTo); register (on success showMessage
+   and switch to the login form). public/js/customer.js: redeem with confirm(), show the voucher, then
+   reload after 3s. public/js/shop.js: each form posts to /api/shops/${shopId}/...;
+   status uses PATCH /api/book-items/${barcode}/status; lookup renders the JSON result; reload the inventory
+   after mutations. public/js/admin.js: create forms -> POST; the edit button fills the form and switches it to
+   PUT mode (data-mode/data-id); delete shop -> confirm -> DELETE; convert datetime-local values to ISO with
+   new Date(v).toISOString().
+
+7. public/css/styles.css: CSS variables, responsive grid, tables, forms, buttons, badges
+   (.badge-available, .badge-borrowed, .badge-lost, .badge-damaged, .badge-overdue), KPI tiles,
+   focus-visible outlines, mobile breakpoint at 768px.
+
+VERIFICATION GATE
+- Log in as each seeded role: the dashboards render with seeded data, and every form works end to end.
+- As admin: DELETE /api/admin/shops/3 -> 204, and GET /api/shops no longer lists it; DELETE shop 1 (active borrow) -> 409.
+- GET /api/admin/reports/overdue -> 200 with BK-0003 (alice); as a Customer -> 403; no cookie -> 401.
+- Browser console shows no CSP violations.
+```
+
+## Phase 7: Test Suite (Jest + Supertest), Coverage and Final Delivery
+
+### 1. Summary and objective
+This phase delivers a test suite with 100 tests, split 60 unit and 40 integration. Every tested feature gets positive, negative and boundary cases. Unit tests isolate the pure logic and the models, using a mocked connection to check `START TRANSACTION`, `COMMIT` and `ROLLBACK` ordering. Integration tests run the real Express app with Supertest and mocked models, so they check routing, the cookie auth flow, RBAC and status codes without needing a database. The phase ends with the final README and a traceability matrix.
+
+**Covers:** Units 10, 11 (plus a final check of all units).
+
+### 2. Test inventory
+
+| Layer | File | # | Focus |
+|---|---|---|---|
+| Unit | `validators.test.js` | 20 | Password boundaries 7/8/72/73; username 2/3/30/31; phone; ISBN-10/13 checksums; barcode; durationDays 0/1/30/31; pagination limit 0/1/100/101; status enum |
+| Unit | `jwt.test.js` | 5 | Sign/verify round trip, tampered token, expired token, wrong `typ` reward code, cookie options |
+| Unit | `authMiddleware.test.js` | 8 | 401, 403, 302 redirect, 403 page, `requireOwnShop` mismatch, invalid param, invalid cookie gets cleared |
+| Unit | `errorMiddleware.test.js` | 5 | AppError, ER_DUP_ENTRY → 409, JSON parse → 400, 500 hidden in production, HTML render branch |
+| Unit | `db.test.js` | 3 | `withTransaction` commit order, rollback on throw, `release` always called |
+| Unit | `userModel.test.js` | 4 | `findConflicts`, `create`, `addPoints` affectedRows = 0 → 404, the public columns never include the hash |
+| Unit | `rewardModel.test.js` | 5 | Redeem success, user/reward 404, out of stock, insufficient points with ROLLBACK |
+| Unit | `bookItemModel.test.js` | 10 | Donate with/without campaign, donor 404; borrow success, not available, wrong shop, limit reached; return success, not borrowed; invalid transition |
+| Integration | `auth.test.js` | 9 | Register 201/400/409, role escalation ignored, login 200 and HttpOnly cookie, 401 wrong password, logout clears cookie |
+| Integration | `public.test.js` | 6 | Shops, books with paging, limit = 101 → 400, ISBN 200/400/404 |
+| Integration | `customer.test.js` | 7 | 401 without cookie, 403 as owner, profile 200, redeem 201/400/404/409 |
+| Integration | `ownerShop.test.js` | 9 | Foreign shop 403, donation 201, borrow 201/409, return 200, status 200/409, claim 200/400 |
+| Integration | `admin.test.js` | 6 | Create shop 201, invalid 400, update 404, delete 204/409, overdue 200 |
+| Integration | `pages.test.js` | 3 | `GET /` 200 HTML, dashboard 302 without login, 403 page for the wrong role |
+
+**Total:** 60 unit + 39 integration (+1 smoke test) = 100.
+
+### 3. DeepSeek prompt
+
+```text
+=== PHASE 7 / 7: TEST SUITE, COVERAGE and FINAL DELIVERY ===
+Using the MASTER CONTEXT and Phases 1-6, generate COMPLETE test code and final docs.
+Target: exactly 60 unit tests and 40 integration tests (39 listed + 1 health smoke test).
+Each describe block is labelled with [positive], [negative] or [boundary] in its test names.
+
+SHARED TEST INFRA
+1. tests/setupEnv.js: process.env.NODE_ENV='test'; JWT_SECRET and REWARD_CODE_SECRET set to 64-char test strings;
+   BCRYPT_ROUNDS='4'; DONATION_BASE_POINTS='10'; DEFAULT_BORROW_DAYS='14'; MAX_BORROW_DAYS='30';
+   MAX_ACTIVE_BORROWS='5'; REWARD_CODE_TTL='72h'; COOKIE_SECURE='false'.
+2. tests/helpers/auth.js: cookieFor({id=1, role='Customer', shopId=null}) returns 'token=' + signAccessToken(...);
+   exports presets: customerCookie(), ownerCookie(shopId=1), adminCookie().
+3. tests/helpers/mockConn.js: createMockConn(responses[]) returns {query: jest.fn, execute: jest.fn, release: jest.fn}.
+   query/execute resolve the queued responses in order, while TCL statements ('START TRANSACTION','COMMIT',
+   'ROLLBACK') resolve to [[]] without consuming the queue. Also records the call order for assertions.
+
+UNIT TESTS (tests/unit/) — mock the DB with jest.mock('../../configs/db', ...) providing pool.execute/query,
+pool.getConnection -> mockConn, and a REAL withTransaction implementation that uses the mocked connection
+(re-implement it inside the mock factory, or use jest.requireActual on a pure helper).
+- validators.test.js (20), jwt.test.js (5), authMiddleware.test.js (8; build req/res/next mocks:
+  res.status().json(), res.redirect, res.render, res.clearCookie), errorMiddleware.test.js (5),
+  db.test.js (3; mock mysql2/promise createPool, assert the exact order START TRANSACTION -> work -> COMMIT,
+  and START TRANSACTION -> ROLLBACK on throw, release called in both),
+  userModel.test.js (4), rewardModel.test.js (5; assert ROLLBACK is called and COMMIT is NOT called on failure),
+  bookItemModel.test.js (10; assert pointsAwarded = 30 with a bonus-20 campaign and 10 without).
+  Follow the inventory table EXACTLY (counts per file).
+
+INTEGRATION TESTS (tests/integration/) — const { createApp } = require('../../app'); request(createApp()).
+- jest.mock every model module used by the route under test (auto-mock), plus jest.mock('../../configs/db')
+  so no pool is ever created. Set return values per test with mockResolvedValueOnce.
+- For error paths, make the model mocks throw real AppError instances (e.g. AppError.outOfStock()).
+- auth.test.js: also assert that the Set-Cookie header contains "HttpOnly" and "SameSite=Strict", that the body has
+  NO token field, that register with role:"Admin" creates role 'Customer' (assert the userModel.create call args),
+  and that bcrypt.compare runs even for an unknown user (spy).
+- pages.test.js: GET / -> 200 and content-type html contains the catalog title; GET /customer/dashboard
+  without a cookie -> 302 location '/?auth=required'; GET /admin/dashboard with a customer cookie -> 403 html.
+- health smoke: mock db.ping -> true -> GET /api/health 200 with data.hostname a string.
+  Follow the inventory table EXACTLY (counts per file).
+
+RULES
+- No real network or DB access. Tests must pass with: npm test (no Docker running).
+- Each test is independent (beforeEach jest.resetAllMocks plus re-applying the default mocks).
+- No snapshot tests. Use toHaveBeenCalledWith for SQL params where it matters (soft delete, FOR UPDATE).
+- npm run test:coverage must meet the jest.config.js thresholds.
+
+FINAL DELIVERABLES
+4. README.md (FINAL, full rewrite): overview; architecture diagram as an ASCII tree of the MVC layers; ADR-1..4 summary
+   (copy the decisions from the MASTER CONTEXT business rules; document the voucher replay limitation and the
+   future reward_redemptions table); setup (Docker and local); seeded accounts table (usernames + roles; the password
+   comes from SEED_DEFAULT_PASSWORD); full endpoint table (method, path, role, success code, error codes);
+   example curl session using -c cookies.txt / -b cookies.txt; testing guide (60/40 split table);
+   a Course Unit Traceability table (Units 1-14 -> files); security notes (HttpOnly + SameSite=Strict as the
+   CSRF mitigation, bcrypt, parameterized SQL, helmet CSP, rate limiting, no role escalation).
+5. Output a final "DELIVERY CHECKLIST" (markdown list) that confirms every endpoint, status code, unit requirement,
+   and file in the MASTER CONTEXT directory structure exists.
+
+VERIFICATION GATE
+- npm test: 100 passing; npm run test:coverage meets the thresholds.
+- docker compose down -v && docker compose up --build: a clean start, the seed runs, and all three dashboards work.
+```
+
+## Course Unit Traceability Matrix
+
+| Unit | Requirement | Where it's delivered |
+|---|---|---|
+| 1 & 4 | Express, core modules, npm scripts | `app.js`, `index.js` (`fs` makes `logs/`, `os` feeds the health endpoint, `path` locates views and static files), `errorMiddleware` (`fs` log), `package.json` (Phase 1) |
+| 2 | Git hygiene | `.gitignore`, `.dockerignore`, ADRs in the README (Phases 1, 7) |
+| 3 | Docker | `Dockerfile` (non-root, HEALTHCHECK), `docker-compose.yml` (healthcheck, `service_healthy`, `db_data`) (Phase 1) |
+| 6 & 7 | dotenv, soft delete, DDL/DML, foreign keys, joins, aggregates, TCL | `configs/env.js`, `db/init.sql`, `db/sample-queries.sql`, models using `withTransaction` (Phases 1–3) |
+| 8 | `mysql2/promise` pool | `configs/db.js` (Phase 1) |
+| 9 | Endpoints and status codes | Routes and controllers (Phases 4–6) |
+| 10 & 11 | Jest/Supertest 60/40, positive/negative/boundary | `tests/unit`, `tests/integration` (Phase 7) |
+| 12 | MVC structure | Full directory layout (all phases) |
+| 13 & 14 | JWT in HttpOnly cookie, RBAC, bcrypt | `configs/jwt.js`, `authMiddleware.js`, `authController.js` (Phases 1, 4) |
+
+## Tips for running DeepSeek
+
+- **Pin the context:** if DeepSeek starts drifting (for example, it switches to `bcryptjs` or ES modules), paste the Master Context again before continuing.
+- **Contract drift:** in Phases 5–7, if DeepSeek calls a model function by the wrong name, point it to the signatures in Phase 3. Those signatures are the source of truth.
+- **Before submitting:** run `docker compose down -v && docker compose up --build`, then `npm test`. The first command checks the real database. The second checks the logic and API without one.
+- **If your instructor rejects ADR-1:** drop `users.shop_id` and `requireOwnShop`. Everything else still works, but owners are no longer limited to their own shop. Mention this in the README.
