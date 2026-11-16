@@ -48,7 +48,7 @@ cp .env.example .env          # then set the two secrets
 docker compose up --build
 ```
 
-* App: http://localhost:3000 (`docker compose port app 3000` prints the actual host port; a `PORT` exported in your shell overrides it)
+* App: http://localhost:3000 — see [QUICKSTART.md](QUICKSTART.md) for the minimal start-up steps (`docker compose port app 3000` prints the actual host port; a `PORT` exported in your shell overrides it)
 * MySQL: `localhost:3307` (container `bbs-db`)
 * The `app` service waits for the `db` healthcheck, then runs `scripts/seed.js` when `SEED_ON_START=true`.
 
