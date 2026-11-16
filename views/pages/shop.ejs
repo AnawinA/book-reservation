@@ -3,37 +3,37 @@
 <input type="hidden" id="shopId" value="<%= shop.id %>">
 
 <nav class="breadcrumb" aria-label="Breadcrumb">
-  <a href="/">Catalog</a>
+  <a href="/">รายการหนังสือ</a>
   <span aria-hidden="true">/</span>
-  <span aria-current="page">Shop counter</span>
+  <span aria-current="page">เคาน์เตอร์ร้านค้า</span>
 </nav>
 
 <header class="page-head">
   <div>
-    <p class="eyebrow">OwnerShop</p>
+    <p class="eyebrow">ร้านค้าสมาชิก</p>
     <h1><%= shop.name %></h1>
     <p class="muted"><%= shop.location %></p>
   </div>
   <div class="page-head-meta">
-    <span class="badge">Shop #<%= shop.id %></span>
-    <span class="badge badge-available"><%= inventory.filter(function (i) { return i.status === 'AVAILABLE'; }).length %> available</span>
-    <span class="badge badge-borrowed"><%= inventory.filter(function (i) { return i.status === 'BORROWED'; }).length %> on loan</span>
+    <span class="badge">ร้านค้า #<%= shop.id %></span>
+    <span class="badge badge-available"><%= inventory.filter(function (i) { return i.status === 'AVAILABLE'; }).length %> เล่มพร้อมยืม</span>
+    <span class="badge badge-borrowed"><%= inventory.filter(function (i) { return i.status === 'BORROWED'; }).length %> เล่มกำลังถูกยืม</span>
   </div>
 </header>
 
-<nav class="subnav" aria-label="Shop sections">
-  <a href="#operations">Counter</a>
-  <a href="#inventory">Inventory</a>
-  <a href="#campaigns">Campaigns</a>
-  <a href="#rewards">Rewards</a>
+<nav class="subnav" aria-label="ส่วนจัดการร้านค้า">
+  <a href="#operations">เคาน์เตอร์</a>
+  <a href="#inventory">คลังหนังสือ</a>
+  <a href="#campaigns">แคมเปญ</a>
+  <a href="#rewards">ของรางวัล</a>
 </nav>
 
 <section class="grid-2" id="operations">
   <div class="card">
-    <div class="card-header"><h2>Accept a donation</h2></div>
+    <div class="card-header"><h2>รับบริจาคหนังสือ</h2></div>
     <form id="donationForm" class="stack">
       <div class="field">
-        <label for="donorPhone">Donor phone</label>
+        <label for="donorPhone">เบอร์โทรศัพท์ผู้บริจาค</label>
         <input id="donorPhone" name="donorPhone" pattern="0[0-9]{9}" placeholder="08xxxxxxxx" required>
       </div>
       <div class="field">
@@ -41,101 +41,101 @@
         <input id="donationIsbn" name="isbn" placeholder="9780132350884" required>
       </div>
       <div class="field">
-        <label for="donationBarcode">Barcode (optional)</label>
-        <input id="donationBarcode" name="barcode" placeholder="Auto-generated when empty">
+        <label for="donationBarcode">บาร์โค้ด (ไม่บังคับ)</label>
+        <input id="donationBarcode" name="barcode" placeholder="สร้างให้อัตโนมัติหากเว้นว่าง">
       </div>
-      <button class="btn" type="submit">Record donation</button>
+      <button class="btn" type="submit">บันทึกการบริจาค</button>
     </form>
   </div>
 
   <div class="card">
-    <div class="card-header"><h2>Lend a book</h2></div>
+    <div class="card-header"><h2>ยืมหนังสือ</h2></div>
     <form id="borrowForm" class="stack">
       <div class="field">
-        <label for="borrowBarcode">Barcode</label>
+        <label for="borrowBarcode">บาร์โค้ด</label>
         <input id="borrowBarcode" name="barcode" placeholder="BK-0001" required>
       </div>
       <div class="field">
-        <label for="borrowerPhone">Borrower phone</label>
+        <label for="borrowerPhone">เบอร์โทรศัพท์ผู้ยืม</label>
         <input id="borrowerPhone" name="borrowerPhone" pattern="0[0-9]{9}" placeholder="08xxxxxxxx" required>
       </div>
       <div class="field">
-        <label for="durationDays">Duration (days)</label>
+        <label for="durationDays">ระยะเวลายืม (วัน)</label>
         <input id="durationDays" name="durationDays" type="number" min="1" max="30" value="14">
       </div>
-      <button class="btn" type="submit">Lend book</button>
+      <button class="btn" type="submit">บันทึกการยืม</button>
     </form>
   </div>
 
   <div class="card">
-    <div class="card-header"><h2>Return a book</h2></div>
+    <div class="card-header"><h2>คืนหนังสือ</h2></div>
     <form id="returnForm" class="stack">
       <div class="field">
-        <label for="returnBarcode">Barcode</label>
+        <label for="returnBarcode">บาร์โค้ด</label>
         <input id="returnBarcode" name="barcode" placeholder="BK-0001" required>
       </div>
-      <button class="btn" type="submit">Return book</button>
+      <button class="btn" type="submit">บันทึกการคืน</button>
     </form>
   </div>
 
   <div class="card">
-    <div class="card-header"><h2>Change item status</h2></div>
+    <div class="card-header"><h2>เปลี่ยนสถานะหนังสือ</h2></div>
     <form id="statusForm" class="stack">
       <div class="field">
-        <label for="statusBarcode">Barcode</label>
+        <label for="statusBarcode">บาร์โค้ด</label>
         <input id="statusBarcode" name="barcode" placeholder="BK-0001" required>
       </div>
       <div class="field">
-        <label for="statusValue">New status</label>
+        <label for="statusValue">สถานะใหม่</label>
         <select id="statusValue" name="status">
-          <option value="AVAILABLE">AVAILABLE</option>
-          <option value="DAMAGED">DAMAGED</option>
-          <option value="LOST">LOST</option>
+          <option value="AVAILABLE">พร้อมยืม (AVAILABLE)</option>
+          <option value="DAMAGED">ชำรุด (DAMAGED)</option>
+          <option value="LOST">สูญหาย (LOST)</option>
         </select>
       </div>
-      <button class="btn" type="submit">Update status</button>
+      <button class="btn" type="submit">อัปเดตสถานะ</button>
     </form>
   </div>
 
   <div class="card">
-    <div class="card-header"><h2>Claim a reward voucher</h2></div>
+    <div class="card-header"><h2>ตรวจสอบรหัสแลกของรางวัล</h2></div>
     <form id="claimForm" class="stack">
       <div class="field">
-        <label for="claimCode">Redemption code</label>
-        <textarea id="claimCode" name="code" rows="4" placeholder="Paste the code the customer shows you" required maxlength="2048"></textarea>
+        <label for="claimCode">รหัสแลกรับรางวัล</label>
+        <textarea id="claimCode" name="code" rows="4" placeholder="วางรหัสที่ลูกค้าแสดงให้ดู" required maxlength="2048"></textarea>
       </div>
-      <button class="btn" type="submit">Validate voucher</button>
+      <button class="btn" type="submit">ตรวจสอบรหัส</button>
     </form>
   </div>
 
   <div class="card">
-    <div class="card-header"><h2>Look up an item</h2></div>
+    <div class="card-header"><h2>ค้นหาข้อมูลหนังสือ</h2></div>
     <form id="lookupForm" class="stack">
       <div class="field">
-        <label for="lookupBarcode">Barcode</label>
+        <label for="lookupBarcode">บาร์โค้ด</label>
         <input id="lookupBarcode" name="barcode" placeholder="BK-0001" required>
       </div>
-      <button class="btn btn-ghost" type="submit">Look up</button>
+      <button class="btn btn-ghost" type="submit">ค้นหา</button>
     </form>
     <pre id="lookupResult" class="lookup-result" hidden></pre>
   </div>
 </section>
 
 <section class="card" id="campaigns">
-  <div class="section-title">Campaigns</div>
+  <div class="section-title">แคมเปญ</div>
   <% if (campaigns.length === 0) { %>
-    <p class="muted">No campaigns for this shop yet.</p>
+    <p class="muted">ยังไม่มีแคมเปญสำหรับร้านค้านี้</p>
   <% } else { %>
     <ul class="plain-list">
       <% campaigns.forEach(function (campaign) { %>
         <li class="list-item">
           <span class="list-item-main">
             <span class="list-item-title"><%= campaign.title %></span>
-            <span class="list-item-meta">Bonus on every donation</span>
+            <span class="list-item-meta">แต้มโบนัสสำหรับการบริจาคทุกเล่ม</span>
           </span>
           <span>
-            <span class="badge badge-bonus">+<%= campaign.bonusPoints %> pts</span>
-            <span class="badge <%= campaign.isActive ? 'badge-available' : 'badge-lost' %>"><%= campaign.isActive ? 'ACTIVE' : 'INACTIVE' %></span>
+            <span class="badge badge-bonus">+<%= campaign.bonusPoints %> แต้ม</span>
+            <span class="badge <%= campaign.isActive ? 'badge-available' : 'badge-lost' %>"><%= campaign.isActive ? 'เปิดใช้งาน' : 'ปิดใช้งาน' %></span>
           </span>
         </li>
       <% }); %>
@@ -145,22 +145,22 @@
 
 <section class="card" id="rewards">
   <div class="card-header">
-    <h2>Rewards</h2>
-    <span class="count-chip"><%= rewards.length %> reward<%= rewards.length === 1 ? '' : 's' %></span>
+    <h2>ของรางวัล</h2>
+    <span class="count-chip"><%= rewards.length %> รายการ</span>
   </div>
   <% if (rewards.length === 0) { %>
-    <p class="muted">No rewards for this shop yet.</p>
+    <p class="muted">ยังไม่มีของรางวัลสำหรับร้านค้านี้</p>
   <% } else { %>
     <div class="table-wrap">
       <table>
-        <thead><tr><th scope="col">Title</th><th scope="col">Cost</th><th scope="col">Stock</th></tr></thead>
+        <thead><tr><th scope="col">ชื่อรางวัล</th><th scope="col">แต้มที่ใช้</th><th scope="col">คงเหลือ</th></tr></thead>
         <tbody>
           <% rewards.forEach(function (reward) { %>
             <tr>
-              <td data-label="Title"><strong><%= reward.title %></strong></td>
-              <td data-label="Cost"><%= reward.pointsCost %> pts</td>
-              <td data-label="Stock">
-                <span class="badge <%= reward.stock > 0 ? 'badge-available' : 'badge-damaged' %>"><%= reward.stock %> left</span>
+              <td data-label="ชื่อรางวัล"><strong><%= reward.title %></strong></td>
+              <td data-label="แต้มที่ใช้"><%= reward.pointsCost %> แต้ม</td>
+              <td data-label="คงเหลือ">
+                <span class="badge <%= reward.stock > 0 ? 'badge-available' : 'badge-damaged' %>">เหลือ <%= reward.stock %> ชิ้น</span>
               </td>
             </tr>
           <% }); %>
@@ -172,30 +172,38 @@
 
 <section class="card" id="inventory">
   <div class="card-header">
-    <h2>Inventory</h2>
-    <span class="count-chip"><%= inventory.length %> item<%= inventory.length === 1 ? '' : 's' %></span>
+    <h2>คลังหนังสือ <span class="sr-only">Inventory</span></h2>
+    <span class="count-chip"><%= inventory.length %> เล่ม</span>
   </div>
+  <%
+    var shopStatusMap = {
+      'AVAILABLE': 'พร้อมยืม',
+      'BORROWED': 'กำลังยืม',
+      'DAMAGED': 'ชำรุด',
+      'LOST': 'สูญหาย'
+    };
+  %>
   <div class="table-wrap">
     <table>
       <thead>
         <tr>
-          <th scope="col">Barcode</th>
-          <th scope="col">Title</th>
-          <th scope="col">Author</th>
-          <th scope="col">Status</th>
-          <th scope="col">Borrower</th>
-          <th scope="col">Due</th>
+          <th scope="col">บาร์โค้ด</th>
+          <th scope="col">ชื่อเรื่อง</th>
+          <th scope="col">ผู้แต่ง</th>
+          <th scope="col">สถานะ</th>
+          <th scope="col">ผู้ยืม</th>
+          <th scope="col">กำหนดส่งคืน</th>
         </tr>
       </thead>
       <tbody>
         <% inventory.forEach(function (item) { %>
           <tr>
-            <td data-label="Barcode"><%= item.barcode %></td>
-            <td data-label="Title"><strong><%= item.title %></strong></td>
-            <td data-label="Author"><%= item.author %></td>
-            <td data-label="Status"><span class="badge badge-<%= item.status.toLowerCase() %>"><%= item.status %></span></td>
-            <td data-label="Borrower"><%= item.borrowerUsername || '-' %></td>
-            <td data-label="Due"><%= formatDate(item.dueDate) %></td>
+            <td data-label="บาร์โค้ด"><%= item.barcode %></td>
+            <td data-label="ชื่อเรื่อง"><strong><%= item.title %></strong></td>
+            <td data-label="ผู้แต่ง"><%= item.author %></td>
+            <td data-label="สถานะ"><span class="badge badge-<%= item.status.toLowerCase() %>"><%= shopStatusMap[item.status] || item.status %></span></td>
+            <td data-label="ผู้ยืม"><%= item.borrowerUsername || '-' %></td>
+            <td data-label="กำหนดส่งคืน"><%= formatDate(item.dueDate) %></td>
           </tr>
         <% }); %>
       </tbody>

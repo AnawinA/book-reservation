@@ -26,7 +26,7 @@
 
     if (!response.ok || !payload || payload.success === false) {
       const error = new Error(
-        (payload && payload.error && payload.error.message) || 'Request failed (' + response.status + ')'
+        (payload && payload.error && payload.error.message) || 'คำขอไม่สำเร็จ (' + response.status + ')'
       );
       error.status = response.status;
       error.code = payload && payload.error ? payload.error.code : undefined;
@@ -77,7 +77,7 @@
         return detail.field + ': ' + detail.message;
       }).join('; ');
     }
-    return (error && error.message) || 'Request failed';
+    return (error && error.message) || 'คำขอไม่สำเร็จ';
   }
 
   document.addEventListener('DOMContentLoaded', function () {

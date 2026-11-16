@@ -48,6 +48,7 @@ describe('server-rendered pages', () => {
     expect(res.headers['content-type']).toMatch(/text\/html/);
     expect(res.text).toContain('Clean Code');
     expect(res.text).toContain('Book Catalog');
+    expect(res.text).toContain('รายการหนังสือ');
   });
 
   test('[negative] a dashboard without a cookie redirects to /?auth=required', async () => {
@@ -66,5 +67,6 @@ describe('server-rendered pages', () => {
     expect(res.headers['content-type']).toMatch(/text\/html/);
     expect(res.text).toContain('403');
     expect(res.text).toContain('You do not have access to this page.');
+    expect(res.text).toContain('คุณไม่มีสิทธิ์เข้าถึงหน้านี้');
   });
 });

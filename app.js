@@ -12,7 +12,7 @@ const { registerRoutes } = require('./routes');
 const asyncHandler = require('./utils/asyncHandler');
 const { notFound, errorHandler } = require('./middlewares/errorMiddleware');
 
-const DATE_FORMAT = new Intl.DateTimeFormat('en-GB', {
+const DATE_FORMAT = new Intl.DateTimeFormat('th-TH', {
   day: '2-digit',
   month: 'short',
   year: 'numeric',

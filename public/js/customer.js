@@ -10,7 +10,7 @@
         const cost = button.dataset.cost;
         const title = button.dataset.title;
 
-        if (!window.confirm('Redeem "' + title + '" for ' + cost + ' points?')) return;
+        if (!window.confirm('ต้องการแลก "' + title + '" ด้วย ' + cost + ' แต้มหรือไม่?')) return;
 
         button.disabled = true;
         try {
@@ -27,7 +27,7 @@
             box.hidden = false;
             box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
           }
-          window.App.showMessage('Redeemed. You have ' + result.remainingPoints + ' points left.');
+          window.App.showMessage('แลกของรางวัลสำเร็จ คุณเหลือ ' + result.remainingPoints + ' แต้ม');
           setTimeout(function () {
             window.location.reload();
           }, 3000);

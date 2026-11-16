@@ -30,10 +30,10 @@
 
     var button = document.getElementById('themeToggle');
     if (button) {
-      var goingTo = next === 'dark' ? 'light' : 'dark';
+      var goingTo = next === 'dark' ? 'สว่าง' : 'มืด';
       button.setAttribute('aria-pressed', next === 'dark' ? 'true' : 'false');
-      button.setAttribute('aria-label', 'Switch to ' + goingTo + ' mode');
-      button.setAttribute('title', 'Switch to ' + goingTo + ' mode');
+      button.setAttribute('aria-label', 'สลับเป็นโหมด' + goingTo);
+      button.setAttribute('title', 'สลับเป็นโหมด' + goingTo);
     }
   }
 

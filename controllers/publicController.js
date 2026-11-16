@@ -79,7 +79,7 @@ const renderHome = asyncHandler(async (req, res) => {
   ]);
 
   return res.render('pages/index', {
-    title: 'Book Catalog',
+    title: 'รายการหนังสือ',
     books: books.items,
     categories,
     shops,
