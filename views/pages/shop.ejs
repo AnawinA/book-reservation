@@ -70,97 +70,263 @@
   </div>
 </section>
 
-<!-- Tab 2: เคาน์เตอร์ -->
-<section class="grid-2 tab-panel" id="operations" role="tabpanel" aria-labelledby="tab-operations" hidden>
-  <div class="card">
-    <div class="card-header"><h2>รับบริจาคหนังสือ</h2></div>
-    <form id="donationForm" class="stack">
-      <div class="field">
-        <label for="donorPhone">เบอร์โทรศัพท์ผู้บริจาค</label>
-        <input id="donorPhone" name="donorPhone" pattern="0[0-9]{9}" placeholder="08xxxxxxxx" required>
+<!-- Tab 2: เคาน์เตอร์ (Services list with topic & button in one row per service) -->
+<section class="card tab-panel" id="operations" role="tabpanel" aria-labelledby="tab-operations" hidden>
+  <div class="card-header">
+    <h2>บริการเคาน์เตอร์ร้านค้า</h2>
+    <span class="count-chip">6 บริการ</span>
+  </div>
+  <p class="muted" style="margin-bottom: 1.25rem;">เลือกบริการที่ต้องการทำรายการเพื่อเปิดแบบฟอร์ม</p>
+
+  <div class="service-list">
+    <!-- Service 1: รับบริจาคหนังสือ -->
+    <div class="service-row">
+      <div class="service-info">
+        <div class="service-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
+            <path d="M12 7v6M9 10h6"/>
+          </svg>
+        </div>
+        <div>
+          <h3 class="service-title">รับบริจาคหนังสือ</h3>
+          <p class="service-desc">สแกน ISBN และเบอร์โทรศัพท์ผู้บริจาค เพื่อเพิ่มหนังสือและบันทึกแต้มสะสม</p>
+        </div>
       </div>
-      <div class="field">
-        <label for="donationIsbn">ISBN</label>
-        <input id="donationIsbn" name="isbn" placeholder="9780132350884" required>
+      <button type="button" class="btn open-modal-btn" data-modal="modal-donation">ทำรายการ</button>
+    </div>
+
+    <!-- Service 2: ยืมหนังสือ -->
+    <div class="service-row">
+      <div class="service-info">
+        <div class="service-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
+            <path d="m15 11 3-3-3-3"/>
+            <path d="M9 8h9"/>
+          </svg>
+        </div>
+        <div>
+          <h3 class="service-title">ยืมหนังสือ</h3>
+          <p class="service-desc">บันทึกการให้ยืมหนังสือแก่สมาชิกด้วยบาร์โค้ดและเบอร์โทรศัพท์ พร้อมกำหนดวันส่งคืน</p>
+        </div>
       </div>
-      <div class="field">
-        <label for="donationBarcode">บาร์โค้ด (ไม่บังคับ)</label>
-        <input id="donationBarcode" name="barcode" placeholder="สร้างให้อัตโนมัติหากเว้นว่าง">
+      <button type="button" class="btn open-modal-btn" data-modal="modal-borrow">ทำรายการ</button>
+    </div>
+
+    <!-- Service 3: คืนหนังสือ -->
+    <div class="service-row">
+      <div class="service-info">
+        <div class="service-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
+            <path d="m9 5-3 3 3 3"/>
+            <path d="M6 8h9"/>
+          </svg>
+        </div>
+        <div>
+          <h3 class="service-title">คืนหนังสือ</h3>
+          <p class="service-desc">สแกนบาร์โค้ดหนังสือเพื่อบันทึกการคืนและอัปเดตสถานะหนังสือกลับสู่คลัง</p>
+        </div>
       </div>
-      <button class="btn" type="submit">บันทึกการบริจาค</button>
-    </form>
+      <button type="button" class="btn open-modal-btn" data-modal="modal-return">ทำรายการ</button>
+    </div>
+
+    <!-- Service 4: เปลี่ยนสถานะหนังสือ -->
+    <div class="service-row">
+      <div class="service-info">
+        <div class="service-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21.5 2v6h-6M2.5 22v-6h6"/>
+            <path d="M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+          </svg>
+        </div>
+        <div>
+          <h3 class="service-title">เปลี่ยนสถานะหนังสือ</h3>
+          <p class="service-desc">ปรับเปลี่ยนสถานะหนังสือในคลัง (พร้อมยืม, ชำรุด, สูญหาย)</p>
+        </div>
+      </div>
+      <button type="button" class="btn open-modal-btn" data-modal="modal-status">ทำรายการ</button>
+    </div>
+
+    <!-- Service 5: ตรวจสอบรหัสแลกของรางวัล -->
+    <div class="service-row">
+      <div class="service-info">
+        <div class="service-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/>
+            <path d="m9 12 2 2 4-4"/>
+          </svg>
+        </div>
+        <div>
+          <h3 class="service-title">ตรวจสอบรหัสแลกของรางวัล</h3>
+          <p class="service-desc">ตรวจสอบและตัดสิทธิ์โค้ดแลกรับของรางวัลที่ลูกค้าแสดงที่เคาน์เตอร์</p>
+        </div>
+      </div>
+      <button type="button" class="btn open-modal-btn" data-modal="modal-claim">ทำรายการ</button>
+    </div>
+
+    <!-- Service 6: ค้นหาข้อมูลหนังสือ -->
+    <div class="service-row">
+      <div class="service-info">
+        <div class="service-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="m21 21-4.3-4.3"/>
+          </svg>
+        </div>
+        <div>
+          <h3 class="service-title">ค้นหาข้อมูลหนังสือ</h3>
+          <p class="service-desc">ตรวจสอบรายละเอียด ข้อมูลผู้ยืม และสถานะของหนังสือจากรหัสบาร์โค้ด</p>
+        </div>
+      </div>
+      <button type="button" class="btn btn-ghost open-modal-btn" data-modal="modal-lookup">ค้นหาข้อมูล</button>
+    </div>
   </div>
 
-  <div class="card">
-    <div class="card-header"><h2>ยืมหนังสือ</h2></div>
-    <form id="borrowForm" class="stack">
-      <div class="field">
-        <label for="borrowBarcode">บาร์โค้ด</label>
-        <input id="borrowBarcode" name="barcode" placeholder="BK-0001" required>
+  <!-- Modal 1: รับบริจาคหนังสือ -->
+  <div class="modal-backdrop" id="modal-donation" role="dialog" aria-modal="true" aria-labelledby="modal-donation-title" hidden>
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h2 id="modal-donation-title">รับบริจาคหนังสือ</h2>
+        <button type="button" class="modal-close-btn" aria-label="ปิด">&times;</button>
       </div>
-      <div class="field">
-        <label for="borrowerPhone">เบอร์โทรศัพท์ผู้ยืม</label>
-        <input id="borrowerPhone" name="borrowerPhone" pattern="0[0-9]{9}" placeholder="08xxxxxxxx" required>
-      </div>
-      <div class="field">
-        <label for="durationDays">ระยะเวลายืม (วัน)</label>
-        <input id="durationDays" name="durationDays" type="number" min="1" max="30" value="14">
-      </div>
-      <button class="btn" type="submit">บันทึกการยืม</button>
-    </form>
+      <form id="donationForm" class="stack">
+        <div class="field">
+          <label for="donorPhone">เบอร์โทรศัพท์ผู้บริจาค</label>
+          <input id="donorPhone" name="donorPhone" pattern="0[0-9]{9}" placeholder="08xxxxxxxx" required>
+        </div>
+        <div class="field">
+          <label for="donationIsbn">ISBN</label>
+          <input id="donationIsbn" name="isbn" placeholder="9780132350884" required>
+        </div>
+        <div class="field">
+          <label for="donationBarcode">บาร์โค้ด (ไม่บังคับ)</label>
+          <input id="donationBarcode" name="barcode" placeholder="สร้างให้อัตโนมัติหากเว้นว่าง">
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost modal-cancel-btn" type="button">ยกเลิก</button>
+          <button class="btn" type="submit">บันทึกการบริจาค</button>
+        </div>
+      </form>
+    </div>
   </div>
 
-  <div class="card">
-    <div class="card-header"><h2>คืนหนังสือ</h2></div>
-    <form id="returnForm" class="stack">
-      <div class="field">
-        <label for="returnBarcode">บาร์โค้ด</label>
-        <input id="returnBarcode" name="barcode" placeholder="BK-0001" required>
+  <!-- Modal 2: ยืมหนังสือ -->
+  <div class="modal-backdrop" id="modal-borrow" role="dialog" aria-modal="true" aria-labelledby="modal-borrow-title" hidden>
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h2 id="modal-borrow-title">ยืมหนังสือ</h2>
+        <button type="button" class="modal-close-btn" aria-label="ปิด">&times;</button>
       </div>
-      <button class="btn" type="submit">บันทึกการคืน</button>
-    </form>
+      <form id="borrowForm" class="stack">
+        <div class="field">
+          <label for="borrowBarcode">บาร์โค้ด</label>
+          <input id="borrowBarcode" name="barcode" placeholder="BK-0001" required>
+        </div>
+        <div class="field">
+          <label for="borrowerPhone">เบอร์โทรศัพท์ผู้ยืม</label>
+          <input id="borrowerPhone" name="borrowerPhone" pattern="0[0-9]{9}" placeholder="08xxxxxxxx" required>
+        </div>
+        <div class="field">
+          <label for="durationDays">ระยะเวลายืม (วัน)</label>
+          <input id="durationDays" name="durationDays" type="number" min="1" max="30" value="14">
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost modal-cancel-btn" type="button">ยกเลิก</button>
+          <button class="btn" type="submit">บันทึกการยืม</button>
+        </div>
+      </form>
+    </div>
   </div>
 
-  <div class="card">
-    <div class="card-header"><h2>เปลี่ยนสถานะหนังสือ</h2></div>
-    <form id="statusForm" class="stack">
-      <div class="field">
-        <label for="statusBarcode">บาร์โค้ด</label>
-        <input id="statusBarcode" name="barcode" placeholder="BK-0001" required>
+  <!-- Modal 3: คืนหนังสือ -->
+  <div class="modal-backdrop" id="modal-return" role="dialog" aria-modal="true" aria-labelledby="modal-return-title" hidden>
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h2 id="modal-return-title">คืนหนังสือ</h2>
+        <button type="button" class="modal-close-btn" aria-label="ปิด">&times;</button>
       </div>
-      <div class="field">
-        <label for="statusValue">สถานะใหม่</label>
-        <select id="statusValue" name="status">
-          <option value="AVAILABLE">พร้อมยืม (AVAILABLE)</option>
-          <option value="DAMAGED">ชำรุด (DAMAGED)</option>
-          <option value="LOST">สูญหาย (LOST)</option>
-        </select>
-      </div>
-      <button class="btn" type="submit">อัปเดตสถานะ</button>
-    </form>
+      <form id="returnForm" class="stack">
+        <div class="field">
+          <label for="returnBarcode">บาร์โค้ด</label>
+          <input id="returnBarcode" name="barcode" placeholder="BK-0001" required>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost modal-cancel-btn" type="button">ยกเลิก</button>
+          <button class="btn" type="submit">บันทึกการคืน</button>
+        </div>
+      </form>
+    </div>
   </div>
 
-  <div class="card">
-    <div class="card-header"><h2>ตรวจสอบรหัสแลกของรางวัล</h2></div>
-    <form id="claimForm" class="stack">
-      <div class="field">
-        <label for="claimCode">รหัสแลกรับรางวัล</label>
-        <textarea id="claimCode" name="code" rows="4" placeholder="วางรหัสที่ลูกค้าแสดงให้ดู" required maxlength="2048"></textarea>
+  <!-- Modal 4: เปลี่ยนสถานะหนังสือ -->
+  <div class="modal-backdrop" id="modal-status" role="dialog" aria-modal="true" aria-labelledby="modal-status-title" hidden>
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h2 id="modal-status-title">เปลี่ยนสถานะหนังสือ</h2>
+        <button type="button" class="modal-close-btn" aria-label="ปิด">&times;</button>
       </div>
-      <button class="btn" type="submit">ตรวจสอบรหัส</button>
-    </form>
+      <form id="statusForm" class="stack">
+        <div class="field">
+          <label for="statusBarcode">บาร์โค้ด</label>
+          <input id="statusBarcode" name="barcode" placeholder="BK-0001" required>
+        </div>
+        <div class="field">
+          <label for="statusValue">สถานะใหม่</label>
+          <select id="statusValue" name="status">
+            <option value="AVAILABLE">พร้อมยืม (AVAILABLE)</option>
+            <option value="DAMAGED">ชำรุด (DAMAGED)</option>
+            <option value="LOST">สูญหาย (LOST)</option>
+          </select>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost modal-cancel-btn" type="button">ยกเลิก</button>
+          <button class="btn" type="submit">อัปเดตสถานะ</button>
+        </div>
+      </form>
+    </div>
   </div>
 
-  <div class="card">
-    <div class="card-header"><h2>ค้นหาข้อมูลหนังสือ</h2></div>
-    <form id="lookupForm" class="stack">
-      <div class="field">
-        <label for="lookupBarcode">บาร์โค้ด</label>
-        <input id="lookupBarcode" name="barcode" placeholder="BK-0001" required>
+  <!-- Modal 5: ตรวจสอบรหัสแลกของรางวัล -->
+  <div class="modal-backdrop" id="modal-claim" role="dialog" aria-modal="true" aria-labelledby="modal-claim-title" hidden>
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h2 id="modal-claim-title">ตรวจสอบรหัสแลกของรางวัล</h2>
+        <button type="button" class="modal-close-btn" aria-label="ปิด">&times;</button>
       </div>
-      <button class="btn btn-ghost" type="submit">ค้นหา</button>
-    </form>
-    <pre id="lookupResult" class="lookup-result" hidden></pre>
+      <form id="claimForm" class="stack">
+        <div class="field">
+          <label for="claimCode">รหัสแลกรับรางวัล</label>
+          <textarea id="claimCode" name="code" rows="4" placeholder="วางรหัสที่ลูกค้าแสดงให้ดู" required maxlength="2048"></textarea>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost modal-cancel-btn" type="button">ยกเลิก</button>
+          <button class="btn" type="submit">ตรวจสอบรหัส</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 6: ค้นหาข้อมูลหนังสือ -->
+  <div class="modal-backdrop" id="modal-lookup" role="dialog" aria-modal="true" aria-labelledby="modal-lookup-title" hidden>
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h2 id="modal-lookup-title">ค้นหาข้อมูลหนังสือ</h2>
+        <button type="button" class="modal-close-btn" aria-label="ปิด">&times;</button>
+      </div>
+      <form id="lookupForm" class="stack">
+        <div class="field">
+          <label for="lookupBarcode">บาร์โค้ด</label>
+          <input id="lookupBarcode" name="barcode" placeholder="BK-0001" required>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost modal-cancel-btn" type="button">ปิด</button>
+          <button class="btn" type="submit">ค้นหา</button>
+        </div>
+      </form>
+      <pre id="lookupResult" class="lookup-result" style="margin-top: 1rem;" hidden></pre>
+    </div>
   </div>
 </section>
 
