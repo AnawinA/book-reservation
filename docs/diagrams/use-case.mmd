@@ -1,0 +1,83 @@
+%% Book Borrowing System - Use Case Diagram
+%% Render: https://mermaid.live  (paste this file) or any Mermaid renderer.
+%% Mermaid has no native UML use-case type, so this uses a flowchart with
+%% actor boxes and stadium-shaped use cases inside a system boundary.
+flowchart LR
+  classDef actor fill:#fde68a,stroke:#b45309,stroke-width:2px,color:#1f2937
+  classDef usecase fill:#eef6ff,stroke:#2563eb,color:#1f2937
+  classDef include stroke-dasharray: 4 4
+
+  Guest[["Guest<br/>(not logged in)"]]:::actor
+  Customer[["Customer"]]:::actor
+  Owner[["Shop Owner"]]:::actor
+  Admin[["Admin"]]:::actor
+
+  subgraph System["Book Borrowing System"]
+    direction TB
+    U5(["Log out (any signed-in role)"])
+
+    subgraph Public["Public / guest"]
+      direction TB
+      U1(["Browse book catalog and search"])
+      U2(["View shops, campaigns and rewards"])
+      U3(["Register account"])
+      U4(["Log in"])
+    end
+
+    subgraph CustomerUC["Customer"]
+      direction TB
+      C1(["View profile and reward points"])
+      C2(["View borrow and donation history"])
+      C3(["Redeem reward and get claim code"])
+    end
+
+    subgraph OwnerUC["Shop Owner"]
+      direction TB
+      O1(["View shop inventory"])
+      O2(["Record book donation"])
+      O3(["Record borrow"])
+      O4(["Record return"])
+      O5(["Update item status (lost / damaged)"])
+      O6(["Claim reward code and deduct points"])
+    end
+
+    subgraph AdminUC["Admin"]
+      direction TB
+      A1(["Manage shops"])
+      A2(["Manage book collections"])
+      A3(["Manage campaigns"])
+      A4(["Manage rewards"])
+      A5(["View overdue report"])
+    end
+  end
+
+  Guest --> U1
+  Guest --> U2
+  Guest --> U3
+  Guest --> U4
+
+  Customer --> C1
+  Customer --> C2
+  Customer --> C3
+  Customer --> U5
+
+  Owner --> O1
+  Owner --> O2
+  Owner --> O3
+  Owner --> O4
+  Owner --> O5
+  Owner --> O6
+
+  Admin --> A1
+  Admin --> A2
+  Admin --> A3
+  Admin --> A4
+  Admin --> A5
+
+  Owner --> U5
+  Admin --> U5
+  U3 -.->|"include"| U4
+  C3 -.->|"include"| C1
+  O3 -.->|"include"| O1
+  O6 -.->|"include"| O1
+  O4 -.->|"include"| O3

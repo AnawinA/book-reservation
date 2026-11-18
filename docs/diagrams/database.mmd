@@ -1,0 +1,72 @@
+%% Book Borrowing System - Database (ER) Diagram
+%% Schema source: db/init.sql (MySQL 8.0, InnoDB, utf8mb4_unicode_ci, all DATETIME in UTC).
+%% Render: https://mermaid.live or any Mermaid renderer.
+erDiagram
+  shops {
+    int id PK "unsigned, auto increment"
+    varchar name "max 100"
+    varchar location "max 255"
+    datetime deleted_at "soft delete, nullable"
+  }
+
+  users {
+    int id PK "unsigned, auto increment"
+    varchar username UK "max 30, unique"
+    varchar phone UK "10 chars, unique"
+    int points "unsigned, default 0"
+    enum role "Admin | Customer | OwnerShop"
+    char password_hash "bcrypt, 60 chars"
+    int shop_id FK "owner shop, nullable"
+    datetime deleted_at "soft delete, nullable"
+  }
+
+  book_collections {
+    int id PK "unsigned, auto increment"
+    varchar isbn UK "13 chars, unique"
+    varchar title "max 255"
+    varchar author "max 255"
+    varchar category "max 50, indexed"
+    datetime deleted_at "soft delete, nullable"
+  }
+
+  campaigns {
+    int id PK "unsigned, auto increment"
+    varchar title "max 150"
+    int bonus_points "unsigned, CHECK <= 1000"
+    int shop_id FK "RESTRICT on delete"
+    datetime start_at "window start"
+    datetime end_at "CHECK end_at > start_at"
+    datetime deleted_at "soft delete, nullable"
+  }
+
+  rewards {
+    int id PK "unsigned, auto increment"
+    varchar title "max 150"
+    int points_cost "unsigned, CHECK > 0"
+    int stock "unsigned, default 0"
+    int shop_id FK "RESTRICT on delete"
+    datetime deleted_at "soft delete, nullable"
+  }
+
+  book_items {
+    int id PK "unsigned, auto increment"
+    int book_collection_id FK "RESTRICT on delete"
+    varchar barcode UK "unique, max 32"
+    enum status "AVAILABLE | BORROWED | LOST | DAMAGED"
+    int shop_id FK "current location"
+    int donor_user_id FK "nullable, donation source"
+    int campaign_id FK "nullable, donated via campaign"
+    int borrower_user_id FK "nullable, set while borrowed"
+    datetime borrowed_at "nullable"
+    datetime due_date "nullable, CHECK >= borrowed_at"
+    datetime deleted_at "soft delete, nullable"
+  }
+
+  shops ||--o{ users : "employs owner"
+  shops ||--o{ campaigns : "runs"
+  shops ||--o{ rewards : "offers"
+  shops ||--o{ book_items : "holds"
+  book_collections ||--o{ book_items : "has copies"
+  campaigns ||--o{ book_items : "bonus source"
+  users ||--o{ book_items : "donates"
+  users ||--o{ book_items : "borrows"

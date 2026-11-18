@@ -1,0 +1,74 @@
+%% Book Borrowing System - Architecture Diagram
+%% How the technologies connect at runtime and at test time.
+%% Render: https://mermaid.live or any Mermaid renderer.
+flowchart TB
+  classDef client fill:#e0f2fe,stroke:#0284c7,color:#0f172a
+  classDef server fill:#eef6ff,stroke:#2563eb,color:#0f172a
+  classDef data fill:#dcfce7,stroke:#16a34a,color:#0f172a
+  classDef infra fill:#f1f5f9,stroke:#64748b,color:#0f172a
+  classDef quality fill:#fef3c7,stroke:#d97706,color:#0f172a
+
+  subgraph Browser["Browser - frontend"]
+    direction TB
+    Pages["EJS-rendered HTML<br/>index / customer / shop / admin / error"]
+    Assets["public/css/styles.css<br/>light + dark theme"]
+    FrontJS["public/js/*.js<br/>api.js, home.js, customer.js,<br/>shop.js, admin.js, theme.js"]
+    Store[("localStorage<br/>bbs-theme")]
+  end
+
+  subgraph Docker["Docker Compose network"]
+    direction TB
+
+    subgraph App["bbs-app container - node:20-bookworm-slim, port 3000"]
+      direction TB
+      Helmet["helmet<br/>CSP + security headers"]
+      Body["express.json / urlencoded<br/>cookie-parser"]
+      Limiter["express-rate-limit<br/>20 auth requests / 15 min"]
+      AuthMW["JWT auth middleware<br/>jsonwebtoken + bcrypt"]
+      Routes["routes/*<br/>public, auth, customer,<br/>ownerShop, admin"]
+      Controllers["controllers/*<br/>business rules"]
+      Models["models/*<br/>mysql2/promise pool"]
+      EJS["EJS view engine<br/>views/pages + partials"]
+      Logs[("logs/error.log")]
+    end
+
+    subgraph DB["bbs-db container - MySQL 8.0, port 3306"]
+      direction TB
+      MySQL[("book_borrowing schema<br/>users, shops, book_collections,<br/>book_items, campaigns, rewards")]
+      Volume[("named volume<br/>db_data")]
+      InitSQL["db/init.sql<br/>schema + FK + CHECK"]
+    end
+  end
+
+  subgraph Ops["Operations and quality"]
+    direction TB
+    Health["GET /api/health<br/>app + db ping"]
+    DockerHealth["Docker HEALTHCHECK<br/>every 15 s"]
+    Jest["Jest + Supertest<br/>159 unit / integration tests"]
+    Coverage["Coverage thresholds<br/>jest --coverage"]
+    Smoke["Playwright-core smoke<br/>4 pages x 2 themes x 2 widths"]
+  end
+
+  Pages --> Assets
+  Pages --> FrontJS
+  FrontJS --> Store
+  FrontJS -->|"fetch JSON, HttpOnly cookie"| Helmet
+  Pages -->|"initial HTML"| Helmet
+
+  Helmet --> Body --> Limiter --> AuthMW --> Routes
+  Limiter -->|"POST /api/auth/login, /register"| Routes
+  Routes --> Controllers --> Models
+  Routes --> EJS
+  EJS -->|"HTML response"| Pages
+  Controllers -->|"JSON envelope"| FrontJS
+  Routes --> Logs
+
+  Models -->|"TCP 3306, SQL, transactions"| MySQL
+  MySQL --> Volume
+  InitSQL -.->|"first init only"| MySQL
+
+  DockerHealth --> Health
+  Health -->|"SELECT 1"| MySQL
+  Jest -->|"in-process app via supertest"| Routes
+  Jest --> Coverage
+  Smoke -->|"HTTP :3000"| Helmet
